@@ -35,7 +35,8 @@ In this file `scale` means `python3 <skill directory>/scripts/scale_image.py`.
 2. **Ask the user to review the description** (and the box overlay, if useful). They may change
    any element. Do not go on until they approve. Never edit it again during the run: if it must
    change, the user does it, and the scripts pause the run.
-3. **Get the scale.** A factor or a target resolution. If the target's aspect ratio differs from
+3. **Ask whether the picture is to be restyled** (for example "as heavy oil paint"). If so, put it in the
+   description and pass `--no-structure` to `init`. **Get the scale.** A factor or a target resolution. If the target's aspect ratio differs from
    the source's, stop: that is not supported yet.
 4. **Choose the generator profile** from the tool you actually have
    ([references/generator-profiles.md](references/generator-profiles.md)): `gpt-image-2-api`

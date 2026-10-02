@@ -2,6 +2,9 @@
 
 ## 0.1.0 - unreleased
 
+- Structure check: warns when a tile's edge layout drifts from the original (found when a generator moved a wall edge);
+  `init --no-structure` for deliberate restyling.
+
 - Feathering: each seam is cross-faded over `--feather` pixels (default 128) of the context, hiding residual colour and line
   mismatches (replayed on the real trial, the seam disappears); `redo` restores the blended pixels. The tile instructions
   and description guidance now stress keeping the colour grade.

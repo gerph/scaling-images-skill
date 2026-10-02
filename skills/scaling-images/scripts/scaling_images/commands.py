@@ -29,6 +29,7 @@ CONTEXT_REJECT = 0.5
 CONTEXT_WARN = 0.8
 SOFT_FRACTION = 0.9
 MAX_SHIFT = 64
+STRUCTURE_WARN = 0.5
 
 
 class CommandError(Exception):
@@ -144,7 +145,8 @@ def cmd_init(args):
         "profile": profile.to_dict(),
         "context": args.context if args.context is not None else int(round(profile.tile / 3.0)),
         "marker": {"colour": list(colour), "name": colour_name, "width": args.marker_width},
-        "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather},
+        "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather,
+                    "structure": not args.no_structure},
         "description": {
             "path": os.path.relpath(os.path.abspath(description_path), os.path.abspath(work)),
             "hash": desc.description_hash(text),
@@ -301,6 +303,16 @@ def cmd_accept(args):
         if state["options"]["tone"]:
             returned = seams.tone_field(returned, supplied, tile, reach=cv.feather_width(tile, feather))
 
+    # Processing: has the generator kept the layout? (Off for a deliberate restyle.)
+    if state["options"].get("structure", True) and not adopted_here:
+        median, worst = seams.structure_score(supplied, returned, tile)
+        tile["structure"] = round(median, 2)
+        if median < STRUCTURE_WARN:
+            warnings.append(
+                "the layout has drifted from the original (edge correlation {0:.2f}; the least similar areas are "
+                "near window x,y {1}); check shapes and edges against the original, e.g. an edge that has moved".format(
+                    median, ", ".join("{0},{1}".format(x, y) for _, x, y in worst)))
+
     # Creation: merge, measure the seams, keep evidence.
     cv.merge(canvas, tile, returned)
     report = seams.seam_report(canvas.pixels, tile)
@@ -408,6 +420,7 @@ def cmd_status(args):
     state = st.load(work)
     print("Source: {0} ({1}x{2}) -> {3}x{4}".format(
         state["source"], state["source_size"][0], state["source_size"][1], state["target"][0], state["target"][1]))
+    print("Options: {0}".format(", ".join("{0}={1}".format(k, v) for k, v in sorted(state["options"].items()))))
     print("Profile: {0}, tile {1}, marker {2}".format(
         state["profile"]["name"], state["profile"]["tile"], state["marker"]["name"]))
     for tile in state["tiles"]:
@@ -586,6 +599,8 @@ def build_parser():
     p.add_argument("--max-pixels", type=int)
     p.add_argument("--no-align", action="store_true")
     p.add_argument("--no-tone", action="store_true")
+    p.add_argument("--no-structure", action="store_true",
+                   help="do not check that the layout matches the original (use when restyling the picture)")
     p.add_argument("--feather", type=int, default=128,
                    help="cross-fade width in pixels on the context side of each seam (0 turns it off)")
     p.add_argument("--description")

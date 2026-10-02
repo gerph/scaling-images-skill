@@ -18,6 +18,11 @@ Built in, applied automatically before the hard cut at the marker line:
   with the new region. A leftover colour step or line mismatch becomes a gradual change instead of a join. The
   blended pixels are saved so `redo` can restore them. Seam numbers are measured before feathering, so they say
   how visible a hard cut would have been.
+- **Structure check** (on by default; `init --no-structure` turns it off): compares the edge layout of each new
+  region with our blocky enlargement of the original, ignoring colour, and warns when a tile's median
+  correlation is below 0.5 (an edge has moved, content has been invented or lost). It never rejects. Turn it
+  off when the user has asked to restyle the picture, since a changed style changes the edges; when a
+  description is adopted part-way through a run, it is skipped for the first tile after the change.
 - **Checks**: a leftover marker line, a wrong shape, or a context that no longer matches rejects the tile.
 
 If a seam is visible: redo that tile now (`redo TILE`, before later tiles depend on it), asking the

@@ -3,6 +3,7 @@ Seam measurement, alignment, tone matching and the checks run on a returned tile
 """
 
 import numpy as np
+from PIL import Image, ImageFilter
 
 from .canvas import unknown_origin
 
@@ -183,3 +184,37 @@ def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0)):
         out[uy - min(reach[1], uy):, ux:] += _smooth_1d(diff, sigma)[None, :, :]
 
     return np.clip(out + 0.5, 0, 255).astype(np.uint8)
+
+
+def _edge_map(array, radius=5):
+    blurred = Image.fromarray(array).filter(ImageFilter.GaussianBlur(radius))
+    gy, gx = np.gradient(luminance(np.asarray(blurred, dtype=np.float64)))
+    return np.hypot(gx, gy)
+
+
+def structure_score(supplied, returned, tile, block=128):
+    """
+    How well the returned new region keeps the layout of the supplied enlargement.
+
+    Compares edge maps (colour and tone are ignored) block by block over the new
+    region. Returns (median correlation, worst) where worst is a list of
+    (correlation, x, y) in window coordinates for the three least similar blocks.
+    Close to 1 means the shapes are where we put them; low means the generator
+    moved or invented content (for example an edge shifted by tens of pixels).
+    """
+    ux, uy = unknown_origin(tile)
+    a = _edge_map(supplied)[uy:, ux:]
+    b = _edge_map(returned)[uy:, ux:]
+    height, width = a.shape
+    step = max(1, block // 2)
+    scores = []
+    for y in range(0, max(1, height - block + 1), step):
+        for x in range(0, max(1, width - block + 1), step):
+            ea, eb = a[y:y + block, x:x + block], b[y:y + block, x:x + block]
+            if ea.std() < 0.3 and eb.std() < 0.3:
+                continue
+            scores.append((float(np.corrcoef(ea.ravel(), eb.ravel())[0, 1]), x + ux, y + uy))
+    if not scores:
+        return 1.0, []
+    scores.sort()
+    return float(np.median([score for score, _, _ in scores])), scores[:3]
