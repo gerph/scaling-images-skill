@@ -78,3 +78,27 @@ def test_marker_remains_detected():
     dirty = np.asarray(generator.generate(tile, marker=((255, 0, 0), 6)))
     assert not seams.marker_remains(clean, tile, (255, 0, 0), 6)
     assert seams.marker_remains(dirty, tile, (255, 0, 0), 6)
+
+
+def test_vertical_colour_gradient_is_corrected_where_global_tone_cannot():
+    tile, canvas, generator, supplied, mask = setup()
+    returned = np.asarray(generator.generate(tile, vgradient=(30, -30)))
+    ideal = np.asarray(generator.generate(tile))
+
+    def step(window):
+        trial = cv.Canvas(TARGET)
+        trial.pixels[:] = canvas.pixels
+        cv.merge(trial, tile, window)
+        return seams.seam_report(trial.pixels, tile)["left"]["ratio"]
+
+    assert step(returned) > 2.5
+    assert step(seams.tone_match(returned, supplied, mask)) > 2.5
+    fixed = seams.tone_field(returned, supplied, tile)
+    assert step(fixed) < 1.0
+    assert np.abs(fixed[:, 800:].astype(int) - ideal[:, 800:].astype(int)).mean() < 4
+
+
+def test_ideal_tile_is_unchanged_by_tone_field():
+    tile, canvas, generator, supplied, mask = setup()
+    ideal = np.asarray(generator.generate(tile))
+    assert np.abs(seams.tone_field(ideal, supplied, tile).astype(int) - ideal.astype(int)).max() <= 1

@@ -56,8 +56,8 @@ def get_profile(name, tile=None, **overrides):
     if name == "gpt-image-2-api":
         profile = Profile(name, tile=2048)
     elif name == "codex-builtin":
-        # The built-in tool ignores the requested size; use `probe` to learn what it delivers.
-        profile = Profile(name, tile=1024, honours_size=False)
+        # The built-in tool ignores the size (observed: about 1.57 megapixels, 1254x1254 square); use `probe`.
+        profile = Profile(name, tile=1248, honours_size=False)
     elif name == "custom":
         profile = Profile(name, tile=2048)
     else:

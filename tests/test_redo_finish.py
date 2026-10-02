@@ -96,6 +96,10 @@ def test_probe_recommends_a_tile_that_fits(tmp_path):
     work, generator, ideal = make_grid(tmp_path)
     status, out, err = run("probe", "--work", work)
     assert status == 0 and "512x512" in out
+    # The generator delivers more than asked for.
+    Image.new("RGB", (640, 640)).save(os.path.join(work, "probe", "result.png"))
+    status, out, err = run("probe", "--result", os.path.join(work, "probe", "result.png"), "--work", work)
+    assert "MORE than was asked" in out and "--tile 640" in out
     # The generator delivers a different, smaller shape.
     Image.new("RGB", (400, 300)).save(os.path.join(work, "probe", "result.png"))
     status, out, err = run("probe", "--result", os.path.join(work, "probe", "result.png"), "--work", work)

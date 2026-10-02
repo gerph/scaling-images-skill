@@ -24,7 +24,7 @@ EXIT_PAUSED = 3
 EXIT_CONFIRM = 4
 EXIT_WARNINGS = 5
 
-SEAM_WARN_RATIO = 3.0
+SEAM_WARN_RATIO = 2.5
 CONTEXT_REJECT = 0.5
 CONTEXT_WARN = 0.8
 SOFT_FRACTION = 0.9
@@ -298,7 +298,7 @@ def cmd_accept(args):
         if correlation < CONTEXT_WARN:
             warnings.append("the context correlates only {0:.2f} with the supplied one".format(correlation))
         if state["options"]["tone"]:
-            returned = seams.tone_match(returned, supplied, mask)
+            returned = seams.tone_field(returned, supplied, tile)
 
     # Creation: merge, measure the seams, keep evidence.
     cv.merge(canvas, tile, returned)
@@ -475,7 +475,12 @@ def cmd_probe(args):
         st.save(work, state)
         print("Asked for {0}x{1}, delivered {2}x{3} ({4}% of the request).".format(
             asked[0], asked[1], dw, dh, int(round(fraction * 100))))
-        if fraction >= 0.95 and abs(dw / float(dh) - asked[0] / float(asked[1])) < 0.02:
+        same_shape = abs(dw / float(dh) - asked[0] / float(asked[1])) < 0.02
+        if same_shape and dw * dh > 1.05 * asked[0] * asked[1]:
+            print("The generator delivers MORE than was asked for ({0:.2f} megapixels). Re-run init --force "
+                  "--tile {1} to use all of it; a smaller tile throws detail away.".format(
+                      dw * dh / 1e6, recommended))
+        elif fraction >= 0.95 and same_shape:
             print("The requested size is honoured: keep --tile {0}.".format(profile["tile"]))
         else:
             print("The size is not honoured. Re-run init with --force --tile {0} so that windows are no "

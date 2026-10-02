@@ -142,3 +142,43 @@ def marker_remains(returned, tile, colour, width, tolerance=60):
     if tile["marker_top"]:
         fractions.append(float(near[uy:uy + width, ux:].mean()))
     return any(f > 0.5 for f in fractions)
+
+
+def _smooth_1d(values, sigma):
+    """
+    Gaussian smoothing along axis 0 of an (N, 3) array, with edge replication.
+    """
+    radius = max(1, int(sigma * 3))
+    x = np.arange(-radius, radius + 1)
+    kernel = np.exp(-x ** 2 / (2.0 * sigma ** 2))
+    kernel /= kernel.sum()
+    padded = np.pad(values, ((radius, radius), (0, 0)), mode="edge")
+    return np.stack([np.convolve(padded[:, c], kernel, "valid") for c in range(3)], axis=1)
+
+
+def tone_field(returned, supplied, tile, band=160, sigma=24):
+    """
+    Correct the generator's colour drift in the new region from its copy of the context.
+
+    A generator often changes colour and contrast differently from top to bottom
+    (a vertical gradient), which a single gain and offset cannot undo. For a left
+    seam, the per-row mean difference between our context and the generator's copy
+    just left of the seam is smoothed and added to the new region (every column
+    right of the seam); for a top seam, the same per column. Only the new region
+    changes.
+    """
+    ux, uy = unknown_origin(tile)
+    out = returned.astype(np.float64)
+    supplied = supplied.astype(np.float64)
+
+    if tile["marker_left"] and ux >= 16:
+        x0 = max(0, ux - band)
+        diff = (supplied[uy:, x0:ux] - out[uy:, x0:ux]).mean(axis=1)
+        out[uy:, ux:] += _smooth_1d(diff, sigma)[:, None, :]
+
+    if tile["marker_top"] and uy >= 16:
+        y0 = max(0, uy - band)
+        diff = (supplied[y0:uy, ux:] - out[y0:uy, ux:]).mean(axis=0)
+        out[uy:, ux:] += _smooth_1d(diff, sigma)[None, :, :]
+
+    return np.clip(out + 0.5, 0, 255).astype(np.uint8)

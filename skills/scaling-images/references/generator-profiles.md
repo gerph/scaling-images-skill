@@ -7,7 +7,7 @@ them as defaults and override any of them with the `custom` profile.
 | Profile | Size honoured | Default tile | Use when |
 | --- | --- | --- | --- |
 | `gpt-image-2-api` | yes | 2048 | gpt-image-2 through the Images API, or the Codex CLI with an explicit size |
-| `codex-builtin` | no | 1024 | the built-in image tool of Codex, which does not take a size |
+| `codex-builtin` | no | 1248 | the built-in image tool of Codex, which does not take a size |
 | `custom` | your rules | 2048 | anything else; give `--multiple`, `--max-edge`, `--max-ratio`, `--min-pixels`, `--max-pixels`, `--tile` |
 
 ## gpt-image-2 rules
@@ -24,6 +24,8 @@ reported to ignore `size` and `quality`, returning smaller images (1024x1536 up 
 while reporting success. So with `codex-builtin`:
 
 1. `init`, then `probe` to learn what size actually comes back; `probe --result FILE` recommends a tile size.
+   Observed in a trial: asked for 1024x1024, it delivered 1254x1254 (about 1.57 megapixels, the same budget as
+   the reported 1672x941), so a tile of 1248 uses all of it and a smaller one throws detail away.
 2. `accept` never trusts the returned size: a result with the right shape is resized (and warned
    about if under 90% of the window); any other shape is rejected.
 3. A smaller delivered tile is genuinely softer. If warnings appear, re-plan with a smaller `--tile`
