@@ -67,6 +67,7 @@ None at present.
 ## Proposals
 
 - **Format.** `description.md` with the two sections as prose for the user to
-  read and edit, plus a `content` block (YAML or JSON) holding the located
-  items. The block is parsed by the scripts; the prose is passed through
+  read and edit, plus a `content` block, a fenced JSON block (JSON because it needs no
+  dependency beyond the Python standard library; YAML would need PyYAML),
+  holding the located items. The block is parsed by the scripts; the prose is passed through
   as is.

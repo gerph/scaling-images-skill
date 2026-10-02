@@ -43,7 +43,9 @@ Part of [Image scaling skill](OVERVIEW.md). Packages the behaviour in
 
       skills/scaling-images/
           SKILL.md            the workflow for the agent, kept short
-          scripts/            the Python scripts (one entry point, subcommands)
+          scripts/            the Python scripts: one entry point
+                              (`scale_image.py`, with subcommands) and a
+                              package of modules (`scaling_images/`)
           references/         the description format, generator profiles,
                               seam treatments (loaded on demand)
       design/                 this design (not shipped in the skill)

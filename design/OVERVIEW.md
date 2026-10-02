@@ -49,6 +49,16 @@ Author: Charles Ferguson (Gerph). Licence: MIT.
 - [Packaging](DESIGN-packaging.md) — repository layout, the skill's files,
   testing and distribution through an agent-skills repository.
 
+**Plans:**
+
+- [Packaging](PLAN-packaging.md) — skeleton, entry point and setup, `SKILL.md`,
+  package test and the real-generator trial. **Stage 1 first; everything else
+  depends on it.**
+- [Tiling](PLAN-tiling.md) — geometry, canvas, merge, seam measures.
+- [Description](PLAN-description.md) — parsing, classification, overlay.
+- [Workflow](PLAN-workflow.md) — fake generator, state, `init`, `next`,
+  `accept`, redo and the rest of the commands.
+
 **Other:**
 
 - [IDEAS](IDEAS.md) — aspect-ratio expansion; progressive enlargement;
@@ -69,3 +79,43 @@ None at present beyond those inside the area documents.
 - Larger images follow once the process works.
 
 These sit in the repository root and are not part of the skill.
+
+## Implementation plan
+
+**Shared conventions** - choices every area's stages rely on:
+
+- **Where new code lives** - `skills/scaling-images/` (the shipped skill:
+  `SKILL.md`, `scripts/scale_image.py`, `scripts/scaling_images/`,
+  `references/`); `tests/` and `design/` are not shipped. The layout mirrors
+  the one used by skills in `gerph/riscos-agent-skills` (checked against its
+  README only).
+- **How dependencies are installed** - Pillow and numpy through
+  `requirements.txt`, installed by the skill's own `setup` command (optionally
+  into a venv). Python 3.9 or later. Test-only dependency: pytest (installed
+  here: Python 3.12.3, numpy 1.26.4, Pillow 12.2.0, pytest 9.1.1).
+- **Tests** - pytest, `pytest tests/`; no test calls a generator or the
+  network. The fake generator in `tests/` stands in for one.
+- **Description format** - prose plus a fenced JSON block (no YAML).
+- **Commits are one per stage**, using the stage's short description as the
+  subject, on a feature branch (never `master`), adding files explicitly. The
+  design is already committed on branch `design`.
+- **Docs/changelog land with the stage** that changes user-visible behaviour.
+- **Work directory and test images** are never committed (they are binary
+  output); the test images stay in the repository root, outside the skill.
+
+**Waves** - sets of stages that can proceed at the same time because none
+touches files or runtime state another in the wave depends on. Waves are
+sequential: start one only when every stage in the previous one is committed.
+
+1. **Wave 0** - Packaging Stage 1 (skeleton, entry point, setup).
+2. **Wave 1** - Tiling Stages 1 to 3 and Description Stages 1 and 2. These two
+   tracks share no files and could be done by separate subagents, but the gain
+   is small and they are best done in one thread unless asked otherwise.
+3. **Wave 2** - Workflow Stages 1 to 3 (fake generator, `init`, `next`,
+   `accept` with the hard cut): the first end-to-end run, with the fake
+   generator, on `KittensSmall.jpg`.
+4. **Wave 3** - Tiling Stage 4, Workflow Stages 4 to 6 and Description Stages
+   3 and 4.
+5. **Wave 4** - Packaging Stages 2 to 4.
+6. **Wave 5** - Packaging Stage 5 (the real trial); its findings may reopen
+   the design.
