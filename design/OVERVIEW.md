@@ -62,7 +62,7 @@ Author: Charles Ferguson (Gerph). Licence: MIT.
 **Other:**
 
 - [IDEAS](IDEAS.md) — aspect-ratio expansion; progressive enlargement;
-  direct image API back end; patch redo.
+  direct image API back end; patch redo; wavefront parallel generation; generating from all corners.
 
 ## Open Questions
 

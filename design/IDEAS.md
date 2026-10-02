@@ -64,4 +64,37 @@ must hold the area plus context all round, and it asks the generator to match
 two sides at once, which may fail where matching one side works. See
 [Workflow](DESIGN-workflow.md).
 
+## Wavefront parallel generation
+
+Status: open
+Kind: idea
+Waiting on: a generator and agent loop that can run several generations at once
+
+A tile needs only its left and upper neighbours as context, so every tile on
+an anti-diagonal is independent of the others on it and can be generated at
+the same time. A 3x3 grid runs as 1, 2, 3, 2, 1 tiles (5 sequential steps
+instead of 9); a 4x2 grid as 1, 2, 2, 2, 1 (5 instead of 8). The geometry
+already knows each tile's dependencies (`dependents`), so most of the work is
+scheduling: `next` would hand out every ready tile, `accept` would take them
+in any order, and tiles on one diagonal must not feather into each other's
+pixels (each seam is against an earlier diagonal, so they do not). The agent
+loop and generator tool must allow several generations in flight. Raised by
+the user after a trial on a 4x2 map.
+
+## Generating from all corners
+
+Status: open
+Kind: idea
+Waiting on: the base workflow, patch redo, and a grid of 3x3 or larger
+
+Start tiles at several corners at once and let them meet in the middle, for up
+to about four times the speed. Context would come from the right or below as
+well as from the left and above, and a final seam between two finished sides
+needs the same treatment as patch redo (marker bands on every side with
+neighbours, match both). Only worthwhile in grids of 3x3 or more, where some
+tiles do not depend on earlier ones. Needs new marker and instruction logic
+and an experiment to see whether a generator can match two sides at once;
+see also [Patch redo](#patch-redo-regenerating-a-tile-with-all-neighbours-as-context).
+Wavefront generation is simpler and should be tried first.
+
 ## Rejected
