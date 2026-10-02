@@ -77,7 +77,8 @@ outputs described in [Workflow](DESIGN-workflow.md).
 - Worked example (T = 2048, C = 683, cap = 1365). `KittensSmall.jpg` at 4x is
   2560 wide: n = 2, r = 512 < 683, so both slices are 1280 (the second
   tile's window starts at 1280 - 768 = 512 and its context is 768 px). 6144 wide:
-  n = 4, r = 1365 >= 683, so slices are 2048, 1365, 1366, 1365. The height 1920
+  4096 remaining needs ceil(4096 / 1365) = 4 more slices (3 x 1365 = 4095 falls one
+  short), so n = 5 and slices are 2048, 1024, 1024, 1024, 1024. The height 1920
   fits in one window, so one row.
 
 ### Accepting a tile and stitching

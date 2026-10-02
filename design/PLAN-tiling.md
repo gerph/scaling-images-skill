@@ -37,7 +37,7 @@ tested alone.
 
 **Acceptance:** `pytest tests/test_geometry.py` passes, including: 2560 wide
 gives slices 1280 and 1280 with the second window starting at 512; 6144 wide
-gives 2048, 1365, 1366, 1365; 1920 high at T = 2048 gives one row with a window
+gives 2048, 1024, 1024, 1024, 1024; 1920 high at T = 2048 gives one row with a window
 height of 1920; no slice under the minimum slice for any length from 1 to
 10000 and any T in {1024, 2048, 3072}; windows always satisfy the multiple-of-16
 rule and stay within the pixel limits or raise.

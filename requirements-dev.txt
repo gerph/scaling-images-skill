@@ -1,0 +1,2 @@
+-r skills/scaling-images/scripts/requirements.txt
+pytest>=7
