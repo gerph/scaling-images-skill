@@ -164,24 +164,31 @@ def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0)):
     A generator often changes colour and contrast differently from top to bottom
     (a vertical gradient), which a single gain and offset cannot undo. For a left
     seam, the per-row mean difference between our context and the generator's copy
-    just left of the seam is smoothed and added to the new region (every column
-    right of the seam); for a top seam, the same per column. Only the new region
-    changes, plus *reach* (left, top) pixels of context beside the seam, so that a feather
-    blends towards a copy whose colour already agrees with the canvas.
+    just left of the seam is smoothed and added to everything right of it; for a top
+    seam, the same per column. *reach* (left, top) extends each correction that many
+    pixels back into the context, so that a feather blends towards a copy whose colour
+    already agrees with the canvas.
+
+    With both seams, the top correction is measured and applied across the same
+    columns as the left correction (not only right of the vertical seam), otherwise it
+    would leave a colour step along the vertical seam.
     """
     ux, uy = unknown_origin(tile)
     out = returned.astype(np.float64)
     supplied = supplied.astype(np.float64)
+    height, width = out.shape[:2]
 
+    first_column = ux
     if tile["marker_left"] and ux >= 16:
         x0 = max(0, ux - band)
         diff = (supplied[uy:, x0:ux] - out[uy:, x0:ux]).mean(axis=1)
-        out[uy:, ux - min(reach[0], ux):] += _smooth_1d(diff, sigma)[:, None, :]
+        first_column = ux - min(reach[0], ux)
+        out[uy:, first_column:] += _smooth_1d(diff, sigma)[:, None, :]
 
     if tile["marker_top"] and uy >= 16:
         y0 = max(0, uy - band)
-        diff = (supplied[y0:uy, ux:] - out[y0:uy, ux:]).mean(axis=0)
-        out[uy - min(reach[1], uy):, ux:] += _smooth_1d(diff, sigma)[None, :, :]
+        diff = (supplied[y0:uy, first_column:] - out[y0:uy, first_column:]).mean(axis=0)
+        out[uy - min(reach[1], uy):, first_column:] += _smooth_1d(diff, sigma)[None, :, :]
 
     return np.clip(out + 0.5, 0, 255).astype(np.uint8)
 

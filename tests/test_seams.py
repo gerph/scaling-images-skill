@@ -102,3 +102,29 @@ def test_ideal_tile_is_unchanged_by_tone_field():
     tile, canvas, generator, supplied, mask = setup()
     ideal = np.asarray(generator.generate(tile))
     assert np.abs(seams.tone_field(ideal, supplied, tile).astype(int) - ideal.astype(int)).max() <= 1
+
+
+def test_two_seam_tile_has_no_colour_step_on_the_vertical_seam():
+    profile = get_profile("custom", tile=512, min_pixels=1)
+    target = (1024, 1024)
+    tiles = geometry.plan_grid(target, profile)
+    ideal = ideal_image(target)
+    source = ideal.resize((256, 256), Image.BOX)
+    generator = FakeGenerator(ideal)
+    canvas = cv.Canvas(target)
+    for tile in tiles[:4]:
+        cv.merge(canvas, tile, np.asarray(generator.generate(tile)))
+    tile = tiles[4]
+    assert tile["marker_left"] and tile["marker_top"]
+
+    supplied = np.asarray(cv.render_input(source, canvas, tile, (255, 0, 0), 6))
+    returned = np.asarray(generator.generate(tile, hgradient=(-30, 30), vgradient=(20, -20)))
+    ideal_window = np.asarray(generator.generate(tile))
+    fixed = seams.tone_field(returned, supplied, tile, reach=(64, 64))
+
+    ux, uy = cv.unknown_origin(tile)
+    error = fixed.astype(float) - ideal_window.astype(float)
+    below = slice(uy + 40, error.shape[0])
+    left = error[below, ux - 24:ux].mean()
+    right = error[below, ux:ux + 24].mean()
+    assert abs(right - left) < 1.0

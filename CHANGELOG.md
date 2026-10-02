@@ -2,6 +2,9 @@
 
 ## 0.1.0 - unreleased
 
+- Fix a colour step along the vertical seam of tiles that have both a left and a top seam: the top-seam colour
+  correction is now applied across the same columns as the left one (found on a real wall, 19 grey levels reduced to ~0).
+
 - Structure check: warns when a tile's edge layout drifts from the original (found when a generator moved a wall edge);
   `init --no-structure` for deliberate restyling.
 
