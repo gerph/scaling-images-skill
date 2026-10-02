@@ -119,3 +119,14 @@ sequential: start one only when every stage in the previous one is committed.
 5. **Wave 4** - Packaging Stages 2 to 4.
 6. **Wave 5** - Packaging Stage 5 (the real trial); its findings may reopen
    the design.
+
+## Implementation status
+
+Built on branch `scaling-images` (version 0.1.0): packaging stage 1 to 4, tiling stages 1 to 4,
+description stages 1 to 4 and workflow stages 1 to 6, all tested with the fake generator
+(`pytest tests/`). Not yet done: the real-generator trial (packaging stage 5), which decides the
+seam thresholds, which further seam treatments are needed, and whether patch redo is worth building.
+Deviations from the plans: `classify` takes the target size and the accepted mask rather than the
+scale and source size; `redo` without `--yes` exits with status 4 (the agent asks the user) instead
+of prompting; `--adopt` can combine with `--redo-from TILE --yes`; the 6144 px worked example gives
+five slices (2048, 1024, 1024, 1024, 1024), corrected in the tiling design.

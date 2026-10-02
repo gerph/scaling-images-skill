@@ -56,7 +56,7 @@ Part of [Image scaling skill](OVERVIEW.md). Packages the behaviour in
 - **Venv handling** (the detail of the decision above). `setup --venv <dir>`
   runs `python -m venv`, installs from `requirements.txt` (minimum versions,
   not pinned tightly) and records the venv's location in a small file in the
-  work directory (and honours an environment variable); from then on the entry
+  user's configuration directory (`~/.config/scaling-images/venv`, because the entry point needs it before it knows the work directory) and honours the `SCALING_IMAGES_VENV` environment variable; from then on the entry
   point re-runs itself under that venv's Python, so the agent keeps calling
   the same command. `setup --check` reports what is present. Where the
   system Python refuses a global install (the "externally managed

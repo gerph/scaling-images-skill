@@ -98,5 +98,6 @@ def build(state, tile, prose, groups, paths, colour_name):
     lines.append("")
     lines.append(prose)
     lines.append("")
-    lines.append("When the result is saved, run: accept (it validates the tile and prepares the next).")
+    lines.append("When the result is saved, run: scale_image.py accept --work {0}".format(paths["work"]))
+    lines.append("(it validates the tile and merges it; then run 'next' for the following tile).")
     return "\n".join(lines) + "\n"

@@ -195,6 +195,7 @@ def _prepare(work, state, tile):
         "result": os.path.join(directory, "result.png"),
         "locator": os.path.join(directory, "locator.png"),
         "original": os.path.join(work, "original.png"),
+        "work": work,
     }
     marker = state["marker"]
     cv.render_input(source, canvas, tile, tuple(marker["colour"]), marker["width"]).save(paths["input"])
