@@ -156,7 +156,7 @@ def _smooth_1d(values, sigma):
     return np.stack([np.convolve(padded[:, c], kernel, "valid") for c in range(3)], axis=1)
 
 
-def tone_field(returned, supplied, tile, band=160, sigma=24):
+def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0)):
     """
     Correct the generator's colour drift in the new region from its copy of the context.
 
@@ -165,7 +165,8 @@ def tone_field(returned, supplied, tile, band=160, sigma=24):
     seam, the per-row mean difference between our context and the generator's copy
     just left of the seam is smoothed and added to the new region (every column
     right of the seam); for a top seam, the same per column. Only the new region
-    changes.
+    changes, plus *reach* (left, top) pixels of context beside the seam, so that a feather
+    blends towards a copy whose colour already agrees with the canvas.
     """
     ux, uy = unknown_origin(tile)
     out = returned.astype(np.float64)
@@ -174,11 +175,11 @@ def tone_field(returned, supplied, tile, band=160, sigma=24):
     if tile["marker_left"] and ux >= 16:
         x0 = max(0, ux - band)
         diff = (supplied[uy:, x0:ux] - out[uy:, x0:ux]).mean(axis=1)
-        out[uy:, ux:] += _smooth_1d(diff, sigma)[:, None, :]
+        out[uy:, ux - min(reach[0], ux):] += _smooth_1d(diff, sigma)[:, None, :]
 
     if tile["marker_top"] and uy >= 16:
         y0 = max(0, uy - band)
         diff = (supplied[y0:uy, ux:] - out[y0:uy, ux:]).mean(axis=0)
-        out[uy:, ux:] += _smooth_1d(diff, sigma)[None, :, :]
+        out[uy - min(reach[1], uy):, ux:] += _smooth_1d(diff, sigma)[None, :, :]
 
     return np.clip(out + 0.5, 0, 255).astype(np.uint8)

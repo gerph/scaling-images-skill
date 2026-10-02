@@ -15,6 +15,12 @@ rather than leaving a heading out, so the user can see it was considered.
 - **School or stylistic form**: photographic, cubist, surrealist, flat and iconic, and so on.
 - **Focus and emphasis**: blur or depth of field; areas deliberately accurate versus cartoon or iconic.
 - **Light, shadow and palette**: direction of light, colour range, any deliberately restricted palette.
+- **Colour grade** (state this carefully; generators drift here and it shows as colour steps at the seams):
+  the overall tint or white balance (for example "cool, lilac-grey dusk"), saturation (muted, vivid),
+  contrast and tonal range, how bright the sky, lights and darks are, and any smooth gradient that must
+  continue across the whole picture (a sky darkening upwards, a vignette). Say what must *not* happen:
+  no boosting of saturation or contrast, no "improving" of the grade, no sharpening of intentionally soft areas.
+  Name the key colours with plain words and, where it helps, approximate values read from the original.
 - **Typography**: typeface style, case, weight, how it is rendered (inlaid, embossed, painted).
 - **Flourishes to retain**: borders, ornaments, textures.
 - **Detail scale**: for every repeating or textural element (waves, fur, brickwork, foliage, grain)
@@ -47,6 +53,8 @@ Boxes need only be approximate. Every entry in section 2 that has a place should
     Medium: photograph, taken at dusk, soft focus; the kittens are in sharper focus than the hills.
     Technique: not applicable. School: naturalistic snapshot.
     Light: low, cool, even; muted lilac-grey sky; warm browns for fur.
+    Colour grade: cool, slightly desaturated dusk; sky a soft lilac-grey that is a little darker towards the
+    top; low contrast with lifted blacks. Do not increase saturation or contrast, or add a warm or blue cast.
     Typography: none. Flourishes: none.
     Detail scale: fur keeps its size relative to the cats and gains individual hairs; stone keeps
     its grain; hills stay soft.

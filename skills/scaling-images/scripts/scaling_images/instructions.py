@@ -69,7 +69,10 @@ def build(state, tile, prose, groups, paths, colour_name):
                          "everything below it, continuing the finished artwork across the line without any "
                          "visible join.".format(colour_name, marker))
         lines.append("- The marker lines are not part of the picture; none may remain in the result.")
-    lines.append("- Match the style, texture, detail level and colour of the finished artwork exactly.")
+    lines.append("- Match the style, texture, detail level and colour of the finished artwork exactly. Keep the "
+                 "colour grade (tint, saturation, contrast, brightness and any gradient across the sky or "
+                 "ground) of the finished artwork and of the original; do not make it more vivid, sharper or "
+                 "more dramatic.")
     lines.append("- Do not invent objects that the original does not contain.")
     if tile["pad"][0] or tile["pad"][1]:
         lines.append("- The last {0} columns and {1} rows repeat the image edge to reach the required size; "

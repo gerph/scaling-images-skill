@@ -31,7 +31,7 @@ In this file `scale` means `python3 <skill directory>/scripts/scale_image.py`.
 
 1. **Look at the original, unmodified, at full size.** Write `description.md` in a new
    work directory following [references/description-format.md](references/description-format.md):
-   composition and style, content with located bounding boxes, and source artefacts.
+   composition and style (including the colour grade), content with located bounding boxes, and source artefacts.
 2. **Ask the user to review the description** (and the box overlay, if useful). They may change
    any element. Do not go on until they approve. Never edit it again during the run: if it must
    change, the user does it, and the scripts pause the run.

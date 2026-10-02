@@ -32,7 +32,7 @@ class FakeGenerator(object):
         self.ideal = np.asarray(ideal.convert("RGB"))
 
     def generate(self, tile, shift=None, tone=None, resize=None, marker=None, scramble_context=False,
-                 vgradient=None):
+                 vgradient=None, noise=0):
         x0, y0, x1, y1 = tile["win"]
         window = self.ideal[y0:y1, x0:x1].copy()
         pad_x, pad_y = tile["pad"]
@@ -49,6 +49,10 @@ class FakeGenerator(object):
         if tone:
             gain, offset = tone
             window = np.clip(window.astype(np.float64) * gain + offset, 0, 255).astype(np.uint8)
+        if noise:
+            rng = np.random.RandomState(7)
+            window = np.clip(window.astype(np.float64) + rng.randint(-noise, noise + 1, window.shape),
+                             0, 255).astype(np.uint8)
         if vgradient:
             top, bottom = vgradient
             ramp = np.linspace(top, bottom, window.shape[0])[:, None, None]

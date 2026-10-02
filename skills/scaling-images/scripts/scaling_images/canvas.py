@@ -136,3 +136,47 @@ def merge(canvas, tile, generated):
     wx0, wy0 = tile["win"][0], tile["win"][1]
     canvas.pixels[ay0:ay1, ax0:ax1] = generated[ay0 - wy0:ay1 - wy0, ax0 - wx0:ax1 - wx0]
     canvas.mask[ay0:ay1, ax0:ax1] = True
+
+
+def feather_width(tile, width):
+    """
+    The feather band widths (left, top) available to a tile: no wider than the context beside the seam.
+    """
+    ux, uy = unknown_origin(tile)
+    return (min(width, ux, tile["acc"][0]) if tile["marker_left"] else 0,
+            min(width, uy, tile["acc"][1]) if tile["marker_top"] else 0)
+
+
+def apply_feather(canvas, tile, returned, width):
+    """
+    Cross-fade from the canvas to the generator's copy of the context, ending at the seam.
+
+    Over *width* pixels on the context side of each new seam the canvas pixels are
+    blended (smoothstep) towards the returned window, which is continuous with the
+    new region at the seam, so a colour or line mismatch becomes a gradual change
+    instead of a step. Returns {name: (rect, original pixels)} so a redo can restore them.
+    """
+    wx0, wy0 = tile["win"][0], tile["win"][1]
+    ax0, ay0, ax1, ay1 = tile["acc"]
+    left, top = feather_width(tile, width)
+    backups = {}
+
+    def ramp(count):
+        t = (np.arange(count) + 0.5) / count
+        return t * t * (3 - 2 * t)
+
+    if left:
+        rect = (ax0 - left, ay0, ax0, ay1)
+        original = canvas.pixels[ay0:ay1, ax0 - left:ax0].copy()
+        theirs = returned[ay0 - wy0:ay1 - wy0, ax0 - left - wx0:ax0 - wx0].astype(np.float64)
+        alpha = ramp(left)[None, :, None]
+        canvas.pixels[ay0:ay1, ax0 - left:ax0] = np.clip(original * (1 - alpha) + theirs * alpha + 0.5, 0, 255)
+        backups["left"] = (rect, original)
+    if top:
+        rect = (ax0, ay0 - top, ax1, ay0)
+        original = canvas.pixels[ay0 - top:ay0, ax0:ax1].copy()
+        theirs = returned[ay0 - top - wy0:ay0 - wy0, ax0 - wx0:ax1 - wx0].astype(np.float64)
+        alpha = ramp(top)[:, None, None]
+        canvas.pixels[ay0 - top:ay0, ax0:ax1] = np.clip(original * (1 - alpha) + theirs * alpha + 0.5, 0, 255)
+        backups["top"] = (rect, original)
+    return backups

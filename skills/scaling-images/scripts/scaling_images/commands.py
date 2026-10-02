@@ -144,7 +144,7 @@ def cmd_init(args):
         "profile": profile.to_dict(),
         "context": args.context if args.context is not None else int(round(profile.tile / 3.0)),
         "marker": {"colour": list(colour), "name": colour_name, "width": args.marker_width},
-        "options": {"align": not args.no_align, "tone": not args.no_tone},
+        "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather},
         "description": {
             "path": os.path.relpath(os.path.abspath(description_path), os.path.abspath(work)),
             "hash": desc.description_hash(text),
@@ -283,6 +283,7 @@ def cmd_accept(args):
         _reject("a {0} marker line is still visible in the result; it must be redrawn away".format(marker["name"]))
 
     # Processing: align, check the context, match tone.
+    feather = state["options"].get("feather", 0)
     adopted_here = state["description"]["history"][-1]["from_tile"] == tile["index"] and tile["index"] > 0
     if mask.sum() > 256:
         if state["options"]["align"]:
@@ -298,7 +299,7 @@ def cmd_accept(args):
         if correlation < CONTEXT_WARN:
             warnings.append("the context correlates only {0:.2f} with the supplied one".format(correlation))
         if state["options"]["tone"]:
-            returned = seams.tone_field(returned, supplied, tile)
+            returned = seams.tone_field(returned, supplied, tile, reach=cv.feather_width(tile, feather))
 
     # Creation: merge, measure the seams, keep evidence.
     cv.merge(canvas, tile, returned)
@@ -307,6 +308,11 @@ def cmd_accept(args):
         if entry["ratio"] > SEAM_WARN_RATIO:
             warnings.append("the {0} seam is visible (difference across it {1:.1f} against {2:.1f} nearby)".format(
                 name, entry["across"], entry["within"]))
+    tile["feather"] = {}
+    if feather:
+        for name, (rect, original) in cv.apply_feather(canvas, tile, returned, feather).items():
+            Image.fromarray(original).save(os.path.join(directory, "feather-{0}.png".format(name)))
+            tile["feather"][name] = list(rect)
     for name, crop in seams.seam_crops(canvas.pixels, tile).items():
         Image.fromarray(crop).save(os.path.join(directory, "seam-{0}.png".format(name)))
 
@@ -369,6 +375,13 @@ def _redo(work, state, spec, confirmed):
 
 def _discard(work, state, affected):
     canvas = cv.Canvas.load(work)
+    # Undo feathering, latest tile first, so the earlier tiles' pixels come back as they were.
+    for index in sorted(affected, reverse=True):
+        entry = state["tiles"][index]
+        for name, (x0, y0, x1, y1) in entry.get("feather", {}).items():
+            original = np.array(Image.open(os.path.join(st.tile_dir(work, entry), "feather-{0}.png".format(name))))
+            canvas.pixels[y0:y1, x0:x1] = original
+        entry["feather"] = {}
     for index in affected:
         entry = state["tiles"][index]
         x0, y0, x1, y1 = entry["acc"]
@@ -573,6 +586,8 @@ def build_parser():
     p.add_argument("--max-pixels", type=int)
     p.add_argument("--no-align", action="store_true")
     p.add_argument("--no-tone", action="store_true")
+    p.add_argument("--feather", type=int, default=128,
+                   help="cross-fade width in pixels on the context side of each seam (0 turns it off)")
     p.add_argument("--description")
     p.add_argument("--force", action="store_true")
     common(p)

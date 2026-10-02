@@ -2,6 +2,10 @@
 
 ## 0.1.0 - unreleased
 
+- Feathering: each seam is cross-faded over `--feather` pixels (default 128) of the context, hiding residual colour and line
+  mismatches (replayed on the real trial, the seam disappears); `redo` restores the blended pixels. The tile instructions
+  and description guidance now stress keeping the colour grade.
+
 - Tone correction now follows a vertical (or horizontal) colour gradient, found in a real trial where the
   generator changed the sky colour from top to bottom; seam warnings start at ratio 2.5; `probe` notices when
   a generator delivers more than was asked; the `codex-builtin` profile defaults to a 1248 tile.

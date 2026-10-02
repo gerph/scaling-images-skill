@@ -13,6 +13,11 @@ Built in, applied automatically before the hard cut at the marker line:
   colour step down the seam (visible in plain sky). The per-row (left seam) or per-column (top seam) difference
   between our context and the generator's copy beside the seam is smoothed and added to the new region.
   Turn off with `init --no-tone`; alignment with `--no-align`.
+- **Feathering** (on by default, `init --feather N`, 0 turns it off): over N pixels (default 128) on the context
+  side of each new seam the canvas is cross-faded into the generator's copy of the context, which is continuous
+  with the new region. A leftover colour step or line mismatch becomes a gradual change instead of a join. The
+  blended pixels are saved so `redo` can restore them. Seam numbers are measured before feathering, so they say
+  how visible a hard cut would have been.
 - **Checks**: a leftover marker line, a wrong shape, or a context that no longer matches rejects the tile.
 
 If a seam is visible: redo that tile now (`redo TILE`, before later tiles depend on it), asking the
