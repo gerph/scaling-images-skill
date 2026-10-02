@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scaling Images"
+  short_description: "Enlarge an image beyond a generator's size limit, tile by tile"
+  default_prompt: "Use $scaling-images to enlarge this image."
