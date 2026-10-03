@@ -162,3 +162,11 @@ Run by the user with Codex's built-in image tool (profile `codex-builtin`) on 20
   smoothed.
 - **Open.** A check for global colour drift against the original (mean colour of each new region against the
   original's corresponding region). Not built; the drift has so far been consistent and has not shown as a seam.
+- **Gems (320x320 RGBA cartoon, 5x, restyled as heavy oil paint, four tiles).** The source had 34% transparent pixels
+  hidden as black, which the first design flattened to RGB; `init` now asks for `--alpha composite|keep` and
+  `--restyle`. First run (composited on white, blocky input): the first tile, which has no finished artwork beside
+  it, kept the staircase edges of its blocky input while the other three were smooth, and the plain white backdrop
+  gained faint colour washes. Second run (`--enlarge smooth`, `--alpha keep`): smooth edges in every tile, seam
+  ratios 1.49 to 1.91, no warnings but the resize note, and the alpha is exactly the original's scaled up (maximum
+  difference 0). On a dark backdrop a pale margin remains around the outer gems; the original has the same opaque
+  pale margin (its soft grey shadows), slightly brighter in the result. An option to shrink the alpha is not built.
