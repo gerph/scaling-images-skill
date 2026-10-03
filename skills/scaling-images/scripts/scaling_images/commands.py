@@ -3,6 +3,8 @@ The command-line commands: init, next, accept, redo, status, preview, finish, pr
 """
 
 import argparse
+import contextlib
+import io
 import os
 import shutil
 import sys
@@ -157,6 +159,8 @@ def cmd_init(args):
         tile["status"] = "pending"
         tile["warnings"] = []
         tile["seams"] = {}
+    if not 0.0 <= args.anchor_strength <= 1.0:
+        raise CommandError("--anchor-strength must be between 0 and 1")
     state = {
         "version": st.STATE_VERSION,
         "tool_version": __version__,
@@ -171,7 +175,7 @@ def cmd_init(args):
         "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather,
                     "structure": not (args.no_structure or args.restyle), "restyle": args.restyle,
                     "enlarge": args.enlarge,
-                    "anchor": args.anchor},
+                    "anchor": args.anchor, "anchor_strength": args.anchor_strength},
         "description": {
             "path": os.path.relpath(os.path.abspath(description_path), os.path.abspath(work)),
             "hash": desc.description_hash(text),
@@ -350,7 +354,8 @@ def _accept(args, dry_run):
     # Processing: anchor the broad colour to the original, then match the seam (fading with distance).
     if _anchor_enabled(state):
         sigma = max(8, int(round(state["profile"]["tile"] / 6.0)))
-        returned = seams.anchor_to_original(returned, cv.original_window(source, state["target"], tile), sigma)
+        returned = seams.anchor_to_original(returned, cv.original_window(source, state["target"], tile), sigma,
+                                            strength=state["options"].get("anchor_strength", 1.0))
     if mask.sum() > 256 and state["options"]["tone"]:
         decay = max(8, int(round(state["profile"]["tile"] / 8.0)))
         returned = seams.tone_field(returned, supplied, tile, reach=cv.feather_width(tile, feather), decay=decay)
@@ -690,6 +695,114 @@ def cmd_description(args):
     return EXIT_OK
 
 
+# ---------------------------------------------------------------- options / reprocess
+
+ON_OFF = ("on", "off")
+
+
+def cmd_options(args):
+    """
+    Show, or change, the processing options of a run (colour anchoring, feathering, corrections).
+    """
+    work = _resolve_work(args)
+    state = st.load(work)
+    options = state["options"]
+    changes = []
+
+    if args.anchor is not None:
+        changes.append(("anchor", args.anchor))
+    if args.anchor_strength is not None:
+        if not 0.0 <= args.anchor_strength <= 1.0:
+            raise CommandError("--anchor-strength must be between 0 and 1")
+        changes.append(("anchor_strength", args.anchor_strength))
+    if args.feather is not None:
+        if args.feather < 0:
+            raise CommandError("--feather must not be negative")
+        changes.append(("feather", args.feather))
+    for name in ("tone", "align", "structure"):
+        value = getattr(args, name)
+        if value is not None:
+            changes.append((name, value == "on"))
+
+    if not changes:
+        print("Options: {0}".format(", ".join("{0}={1}".format(k, v) for k, v in sorted(options.items()))))
+        return EXIT_OK
+
+    for name, value in changes:
+        options[name] = value
+    st.save(work, state)
+    print("Changed: {0}.".format(", ".join("{0}={1}".format(k, v) for k, v in changes)))
+    print("They apply to tiles accepted from now on. To apply them to the tiles already accepted, from their stored "
+          "results and without generating anything, run: reprocess --work {0}".format(work))
+    return EXIT_OK
+
+
+def cmd_reprocess(args):
+    """
+    Rebuild the canvas from the stored raw results with the current options, generating nothing.
+    """
+    work = _resolve_work(args)
+    state = st.load(work)
+    _check_description(work, state)
+
+    accepted = [t for t in state["tiles"] if t["status"] != "pending"]
+    if not accepted:
+        raise CommandError("There is nothing to reprocess: no tile has been accepted")
+    start = st.find_tile(state, args.start)["index"] if args.start is not None else accepted[0]["index"]
+    affected = [t for t in accepted if t["index"] >= start]
+    if not affected:
+        raise CommandError("Tile {0} has not been accepted, so there is nothing to reprocess from it".format(args.start))
+
+    missing = [st.tile_label(t) for t in affected
+               if not os.path.isfile(os.path.join(st.tile_dir(work, t), "result.png"))]
+    if missing:
+        raise CommandError("Cannot reprocess: no stored result for {0}. Nothing was changed.".format(
+            ", ".join(missing)))
+
+    print("Reprocessing {0} tile(s) from {1} to {2} with: {3}".format(
+        len(affected), st.tile_label(affected[0]), st.tile_label(affected[-1]),
+        ", ".join("{0}={1}".format(k, v) for k, v in sorted(state["options"].items()))))
+    print("This rebuilds their pixels in the canvas from the stored raw results. No image is generated. A backup "
+          "of the canvas, mask and state is kept in 'reprocess-backup'.")
+    if not args.yes:
+        raise CommandError("Not done. Tell the user, and if they agree re-run with --yes.", EXIT_CONFIRM)
+
+    # Backup, then take the affected tiles out of the canvas (restoring any feathering they did).
+    backup = os.path.join(work, "reprocess-backup")
+    os.makedirs(backup, exist_ok=True)
+    for name in ("state.json", "canvas.png", "mask.png"):
+        shutil.copy2(os.path.join(work, name), os.path.join(backup, name))
+    previous = dict((t["index"], t["status"]) for t in affected)
+    _discard(work, state, [t["index"] for t in affected])
+
+    # Replay each tile through the same code path as accept, quietly, in order.
+    for number, tile in enumerate(affected, 1):
+        label = st.tile_label(tile)
+        replay = argparse.Namespace(work=work, result=None)
+        sink = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(sink):
+                status = _accept(replay, dry_run=False)
+        except CommandError as exc:
+            raise CommandError("Reprocessing stopped at {0}: {1}\nTiles before it were reprocessed; {0} and the "
+                               "later ones are pending again (the backup is in '{2}'). Regenerate {0}, or restore "
+                               "the backup.".format(label, str(exc).split("\n")[0], backup), exc.status)
+        print("  {0} ({1} of {2}){3}".format(label, number, len(affected), " - warnings" if status == EXIT_WARNINGS
+                                             else ""))
+
+    # The tiles are accepted again; give them back their earlier status.
+    state = st.load(work)
+    for index, status in previous.items():
+        state["tiles"][index]["status"] = status
+    st.save(work, state)
+
+    print("Done. Look at the preview and the drift grid below.")
+    canvas = cv.Canvas.load(work)
+    _preview_image(work, state, canvas).save(os.path.join(work, "preview.png"))
+    _print_drift(work, state, canvas)
+    return EXIT_OK
+
+
 # ---------------------------------------------------------------- parser
 
 def build_parser():
@@ -730,6 +843,9 @@ def build_parser():
     p.add_argument("--anchor", choices=["auto", "on", "off"], default="auto",
                    help="pull each tile's broad colour back to the original's, so errors cannot add up across a "
                         "large image (auto: on, unless --restyle)")
+    p.add_argument("--anchor-strength", type=float, default=0.5,
+                   help="how far to pull towards the original's broad colour, 0 to 1 (default 0.5: bounds drift "
+                        "but keeps some of a generator's deliberate relighting; 1 is a full pull)")
     p.add_argument("--no-structure", action="store_true",
                    help="do not check that the layout matches the original (use when restyling the picture)")
     p.add_argument("--feather", type=int, default=128,
@@ -753,6 +869,22 @@ def build_parser():
     p.add_argument("result", nargs="?", help="the generated image (default: the path 'next' gave)")
     common(p)
     p.set_defaults(func=cmd_accept)
+
+    p = sub.add_parser("options", help="show or change the processing options of a run")
+    p.add_argument("--anchor", choices=["auto", "on", "off"])
+    p.add_argument("--anchor-strength", type=float, help="0 to 1")
+    p.add_argument("--feather", type=int)
+    p.add_argument("--tone", choices=ON_OFF)
+    p.add_argument("--align", choices=ON_OFF)
+    p.add_argument("--structure", choices=ON_OFF)
+    common(p)
+    p.set_defaults(func=cmd_options)
+
+    p = sub.add_parser("reprocess", help="rebuild accepted tiles from their stored results, generating nothing")
+    p.add_argument("--from", dest="start", help="first tile to reprocess (default: the first accepted)")
+    p.add_argument("--yes", action="store_true", help="confirm (it changes the canvas; a backup is kept)")
+    common(p)
+    p.set_defaults(func=cmd_reprocess)
 
     p = sub.add_parser("check", help="validate a candidate result without merging it")
     p.add_argument("result", nargs="?", help="the candidate image (default: the path 'next' gave)")

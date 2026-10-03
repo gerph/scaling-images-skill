@@ -50,7 +50,7 @@ def test_accept_warns_about_drift_and_preview_shows_a_table(tmp_path):
 
 
 def test_anchoring_keeps_the_same_generator_from_being_flagged(tmp_path):
-    work, generator, ideal = make_job(tmp_path, size=(256, 256), factor=4, extra=GRID)
+    work, generator, ideal = make_job(tmp_path, size=(256, 256), factor=4, extra=GRID + ("--anchor-strength", "1.0"))
     tile = st.next_pending(st.load(work))
     save_result(work, tile, generator.generate(tile, tone=(1.5, 30)))
     status, out, err = run("accept", "--work", work)

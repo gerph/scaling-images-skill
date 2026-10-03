@@ -58,9 +58,9 @@ def test_seam_correction_fades_with_distance():
     assert error_at(faded, 2) < 6 < error_at(returned, 2)              # next to the seam it still mostly matches
 
 
-def drifting_job(tmp_path, anchor):
+def drifting_job(tmp_path, anchor, strength="1.0"):
     work, generator, ideal = make_job(tmp_path, size=(256, 256), factor=4,
-                                      extra=GRID + ("--anchor", anchor))
+                                      extra=GRID + ("--anchor", anchor, "--anchor-strength", strength))
     for _ in range(len(st.load(work)["tiles"])):
         tile = st.next_pending(st.load(work))
         # Every tile comes back a little lighter than the one before it.
@@ -70,13 +70,16 @@ def drifting_job(tmp_path, anchor):
 
 
 def test_drift_adds_up_without_anchoring_and_not_with_it(tmp_path):
-    (tmp_path / "a").mkdir()
-    (tmp_path / "b").mkdir()
+    for name in ("a", "b", "c"):
+        (tmp_path / name).mkdir()
     off, ideal = drifting_job(tmp_path / "a", "off")
     on, _ = drifting_job(tmp_path / "b", "on")
+    half, _ = drifting_job(tmp_path / "c", "on", "0.5")
     error = lambda canvas: abs(lum(canvas.astype(float)).mean() - lum(ideal.astype(float)).mean())
     assert error(on) < 4
     assert error(off) > 2 * error(on)
+    # Half strength keeps some of the generator's lightening, but still bounds it well below no anchoring.
+    assert error(on) <= error(half) < error(off)
 
 
 def test_auto_is_off_when_restyling_and_option_is_recorded(tmp_path):

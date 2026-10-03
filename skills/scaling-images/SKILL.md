@@ -69,6 +69,9 @@ In this file `scale` means `python3 <skill directory>/scripts/scale_image.py`.
 - **Description changed** (exit status 3, "PAUSED"): stop and ask the user which they want:
   revert it, `description --adopt` (from the current tile on), or `description --adopt --redo-from TILE --yes`.
   Do not choose for them.
+- **Reprocess**: if the colour of the accepted tiles needs retuning, `scale options --anchor-strength N`
+  (and others) then `scale reprocess --work DIR` rebuilds them from their stored results without generating
+  anything. It changes the canvas (a backup is kept), so tell the user first and only then add `--yes`.
 - **Redo**: `scale redo TILE` lists the tiles that would be discarded (the tile and every later one that
   used its pixels). Tell the user; only after they agree run it again with `--yes`.
 - Never hand-edit `state.json`, the canvas or the mask.

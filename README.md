@@ -98,6 +98,8 @@ directory, so a run can continue in a later session.
 | `next` | Write the next tile's input image and print its instructions. |
 | `check [FILE]` | Run every validation on a candidate result without merging it. |
 | `accept [FILE]` | Validate and merge the result, then measure the seams. |
+| `options [--anchor-strength N ...]` | Show or change the processing options of a run. |
+| `reprocess [--from TILE] [--yes]` | Rebuild the accepted tiles from their stored results with the current options, generating nothing. |
 | `redo TILE [--yes]` | Discard a tile and the later tiles that used its pixels (it asks first). |
 | `status`, `preview` | Show progress; write a downscaled preview and the seam report. |
 | `finish [--output FILE]` | Write the final PNG. |
@@ -114,6 +116,7 @@ Main `init` options:
 | `--tile N` | Tile size; defaults to 2048, or 1248 for `codex-builtin`. |
 | `--context N` | Pixels of finished artwork shown beside each new tile (default a third of the tile). |
 | `--feather N` | Cross-fade width at each seam (default 128; 0 for a hard cut). |
+| `--anchor-strength N` | How far the anchor pulls towards the original, 0 to 1 (default 0.5). |
 | `--anchor auto\|on\|off` | Pull each tile's broad colour back to the original's, so errors cannot add up across a large image (auto: on unless `--restyle`). |
 | `--enlarge nearest\|smooth` | How the not-yet-drawn part of each input is enlarged. |
 | `--restyle` | Render in the Target style given in the description. |

@@ -14,11 +14,14 @@ Built in, applied automatically before the hard cut at the marker line:
   between our context and the generator's copy beside the seam is smoothed and added to the new region.
   Turn off with `init --no-tone`; alignment with `--no-align`.
 - **Anchoring to the original** (on by default; `init --anchor off` turns it off; `auto` leaves it off when
-  restyling): matching each tile only to its neighbour lets small errors add up, so over a large image every
+  restyling; `--anchor-strength` 0 to 1, default 0.5, sets how far to pull): matching each tile only to its neighbour lets small errors add up, so over a large image every
   step right or down drifts lighter or tinted. Each returned tile's broad colour (blurred over about a sixth
   of the tile) is multiplied back towards the original's, so features smaller than that keep the generator's
   rendering and the large-scale colour stays where the original has it. Found on a 60-tile job where one row
   ended 2x lighter than the original.
+  A generator sometimes relights part of a picture deliberately (a lit neck against a dark original). Full
+  strength pulls that back to the original's darkness; 0.5 keeps about half of it and still bounds drift to
+  roughly +-15% of the original's lightness, because each tile is measured against the original, not its neighbour.
 - **Seam colour correction fades with distance** (about an eighth of the tile): an error measured at the seam,
   such as bright content that differs between the two copies, must not spread across the whole tile.
 - **Colour drift report**: `preview` prints each accepted tile's lightness against the original (1.00 is the same)
@@ -37,6 +40,14 @@ Built in, applied automatically before the hard cut at the marker line:
   off when the user has asked to restyle the picture, since a changed style changes the edges; when a
   description is adopted part-way through a run, it is skipped for the first tile after the change.
 - **Checks**: a leftover marker line, a wrong shape, or a context that no longer matches rejects the tile.
+
+Changing your mind about the processing: `options` shows or changes the options of a run (`--anchor`,
+`--anchor-strength`, `--feather`, `--tone`, `--align`, `--structure`); they apply to tiles accepted from then on.
+`reprocess` rebuilds the tiles already accepted from their stored raw results (the `result.png` files) with the
+current options, generating nothing, and leaves the old canvas in `reprocess-backup`. It asks for confirmation (`--yes`)
+because it changes the canvas, and `--from TILE` limits it to that tile and later ones. A replay is not identical to a
+regeneration (the generator saw the old neighbours) but the seam correction absorbs that. Use it to repair tiles
+accepted under an older version of these scripts, or to retune the colour of a large image without regenerating it.
 
 If a seam is visible: redo that tile now (`redo TILE`, before later tiles depend on it), asking the
 generator again from the same input. Do not accept a bad tile and carry on.

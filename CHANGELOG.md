@@ -2,6 +2,11 @@
 
 ## 0.1.0 - unreleased
 
+- `init --anchor-strength` (default 0.5) sets how far the anchor pulls towards the original (full strength also
+  pulled back a generator's deliberate relighting, such as a lit neck against a dark original). `options` changes the
+  processing options of a run, and `reprocess` rebuilds the accepted tiles from their stored raw results with the
+  current options, generating nothing, keeping a backup of the old canvas. Runs started before this keep full strength.
+
 - `check` writes the 1:1 crops of the proposed seams (`candidate-seam-*.png`), feathered as `accept` would, without
   changing the canvas or state, so a candidate can be inspected before it is accepted.
 

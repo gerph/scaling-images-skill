@@ -239,7 +239,7 @@ def structure_score(supplied, returned, tile, block=128):
     return float(np.median([score for score, _, _ in scores])), scores[:3]
 
 
-def anchor_to_original(returned, original, sigma, low=0.5, high=2.0, eps=8.0):
+def anchor_to_original(returned, original, sigma, low=0.5, high=2.0, eps=8.0, strength=1.0):
     """
     Pull the broad colour and brightness of a returned window back to the original's.
 
@@ -248,10 +248,15 @@ def anchor_to_original(returned, original, sigma, low=0.5, high=2.0, eps=8.0):
     blurred colour to the returned window's blurred colour (blur radius *sigma* pixels, ratio limited
     to low..high), so features smaller than a few sigma keep the generator's rendering while the
     large-scale colour stays where the original has it.
+
+    *strength* (0 to 1) raises the ratio to that power: 1 pulls fully to the original, 0.5 halfway. A
+    generator sometimes relights part of a picture deliberately (a lit neck against a dark original);
+    a lower strength keeps more of that while still bounding the drift, since every tile is measured
+    against the original and not against its neighbour.
     """
     blurred_returned = np.asarray(Image.fromarray(returned).filter(ImageFilter.GaussianBlur(sigma)), dtype=np.float64)
     blurred_original = np.asarray(Image.fromarray(original).filter(ImageFilter.GaussianBlur(sigma)), dtype=np.float64)
-    ratio = np.clip((blurred_original + eps) / (blurred_returned + eps), low, high)
+    ratio = np.clip((blurred_original + eps) / (blurred_returned + eps), low, high) ** strength
     return np.clip(returned.astype(np.float64) * ratio + 0.5, 0, 255).astype(np.uint8)
 
 
