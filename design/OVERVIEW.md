@@ -130,3 +130,35 @@ Deviations from the plans: `classify` takes the target size and the accepted mas
 scale and source size; `redo` without `--yes` exits with status 4 (the agent asks the user) instead
 of prompting; `--adopt` can combine with `--redo-from TILE --yes`; the 6144 px worked example gives
 five slices (2048, 1024, 1024, 1024, 1024), corrected in the tiling design.
+
+## Trial results (packaging stage 5)
+
+Run by the user with Codex's built-in image tool (profile `codex-builtin`) on 2026-10-03 and 2026-10-04.
+
+- **Delivered size.** Asked for 1024x1024 or 1248x1248, the tool delivered 1254x1254 (about 1.57 megapixels, the
+  same budget as the reported 1672x941). The profile now defaults to a 1248 tile and `probe` notices a larger
+  delivery.
+- **Kittens, first run (six 1024 tiles).** Showed three problems the first design did not cover: the generator's
+  copy of the context differs from ours by a colour gradient from top to bottom (a vertical colour step in the
+  sky); a tile with both a left and a top seam left a step down the vertical seam (the top correction was not
+  applied across the same columns); and the generator moved a wall edge by about 60 px and made the picture more
+  vivid than the original. Fixes: per-row/per-column colour correction (`tone_field`), applied continuously across
+  both seams; feathering (128 px cross-fade into the generator's copy, with the replaced pixels saved for `redo`);
+  an optional structure check (edge correlation against the nearest-neighbour enlargement, warn below 0.5);
+  an explicit colour-grade item in the description and a "keep the grade" line in every tile's instructions.
+- **Kittens, second run (four 1248 tiles).** Colour stayed close to the original, no visible seam in the sky, wall
+  edge in place; structure scores 0.87 to 0.95; seam ratios 1.89 to 2.05. A residual colour step remained on the
+  wall because of the two-seam bug, since fixed and replayed offline on the saved tile (19 grey levels to about 0).
+- **Map (3072x2048, eight tiles).** Structure scores 0.81 to 0.96, seam ratios up to 2.17, no warnings other than
+  the resize note, no visible seam, all lettering correct including the key and scale bar. The agent regenerated one
+  tile twice by itself (an added border; labels that belong elsewhere) before accepting it. A milder warm and bright
+  colour drift from the original remains, consistent across tiles so invisible as seams.
+- **Thresholds that held.** Seam ratio warning at 2.5; structure warning at 0.5 (good tiles scored 0.81 or more);
+  context correlation reject below 0.5, warn below 0.8.
+- **Not needed so far.** Minimum-difference seam, seam-repair tile, a local warp for slightly mismatched lines,
+  patch redo. They stay in [Tiling](DESIGN-tiling.md) and [IDEAS](IDEAS.md).
+- **Added because of the trials.** `check` (validate a candidate without merging it) and instruction wording that
+  keeps the framing, forbids drawing anything outside the tile, and asks for texture to be redrawn rather than
+  smoothed.
+- **Open.** A check for global colour drift against the original (mean colour of each new region against the
+  original's corresponding region). Not built; the drift has so far been consistent and has not shown as a seam.

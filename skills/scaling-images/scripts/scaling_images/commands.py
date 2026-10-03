@@ -239,13 +239,25 @@ def _reject(message):
 
 
 def cmd_accept(args):
+    return _accept(args, dry_run=False)
+
+
+def cmd_check(args):
+    """
+    Run every accept validation on a candidate result, changing nothing.
+    """
+    return _accept(args, dry_run=True)
+
+
+def _accept(args, dry_run):
     work = _resolve_work(args)
     state = st.load(work)
     _check_description(work, state)
 
     tile = st.next_pending(state)
     if tile is None:
-        raise CommandError("There is nothing to accept: every tile is already accepted")
+        raise CommandError("There is nothing to {0}: every tile is already accepted".format(
+            "check" if dry_run else "accept"))
     directory = st.tile_dir(work, tile)
     result_path = args.result or os.path.join(directory, "result.png")
     if not os.path.isfile(result_path):
@@ -306,7 +318,7 @@ def cmd_accept(args):
     # Processing: has the generator kept the layout? (Off for a deliberate restyle.)
     if state["options"].get("structure", True) and not adopted_here:
         median, worst = seams.structure_score(supplied, returned, tile)
-        tile["structure"] = round(median, 2)
+        tile["structure"] = round(median, 2)  # not saved by a dry run: state is only written by accept
         if median < STRUCTURE_WARN:
             warnings.append(
                 "the layout has drifted from the original (edge correlation {0:.2f}; the least similar areas are "
@@ -320,6 +332,19 @@ def cmd_accept(args):
         if entry["ratio"] > SEAM_WARN_RATIO:
             warnings.append("the {0} seam is visible (difference across it {1:.1f} against {2:.1f} nearby)".format(
                 name, entry["across"], entry["within"]))
+    if dry_run:
+        print("CHECK of tile {0}: {1}. Nothing was changed.".format(
+            st.tile_label(tile), "would be accepted with warnings" if warnings else "would be accepted"))
+        for name, entry in sorted(report.items()):
+            print("  {0} seam: across {1:.1f}, nearby {2:.1f}, ratio {3:.2f}".format(
+                name, entry["across"], entry["within"], entry["ratio"]))
+        if "structure" in tile:
+            print("  layout agreement with the original: {0:.2f}".format(tile["structure"]))
+        for warning in warnings:
+            print("  WARNING: {0}".format(warning))
+        print("Run accept to merge this result, or regenerate and check again.")
+        return EXIT_WARNINGS if warnings else EXIT_OK
+
     tile["feather"] = {}
     if feather:
         for name, (rect, original) in cv.apply_feather(canvas, tile, returned, feather).items():
@@ -622,6 +647,11 @@ def build_parser():
     p.add_argument("result", nargs="?", help="the generated image (default: the path 'next' gave)")
     common(p)
     p.set_defaults(func=cmd_accept)
+
+    p = sub.add_parser("check", help="validate a candidate result without merging it")
+    p.add_argument("result", nargs="?", help="the candidate image (default: the path 'next' gave)")
+    common(p)
+    p.set_defaults(func=cmd_check)
 
     p = sub.add_parser("redo", help="discard a tile and the tiles that depended on it")
     p.add_argument("tile", help="a tile index or label such as r1c0")

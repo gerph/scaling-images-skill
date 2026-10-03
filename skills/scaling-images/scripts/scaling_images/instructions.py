@@ -74,6 +74,13 @@ def build(state, tile, prose, groups, paths, colour_name):
                  "ground) of the finished artwork and of the original; do not make it more vivid, sharper or "
                  "more dramatic.")
     lines.append("- Do not invent objects that the original does not contain.")
+    lines.append("- Keep the exact framing of the input. Do not add a border, frame, margin or vignette unless the "
+                 "input already shows one.")
+    lines.append("- Do not draw any object, label or feature that lies outside this tile. If something is cut off at "
+                 "the edge of the input it stays cut off, and nothing beyond the edge is added.")
+    lines.append("- Where the input looks flat or blocky it is only a low-resolution enlargement: redraw the natural "
+                 "texture and fine detail of the medium there (fields, water, stone, sky grain, paper) as in the "
+                 "finished artwork, and do not turn it into smooth colour.")
     if tile["pad"][0] or tile["pad"][1]:
         lines.append("- The last {0} columns and {1} rows repeat the image edge to reach the required size; "
                      "continue the image naturally there (they are cropped afterwards).".format(*tile["pad"]))

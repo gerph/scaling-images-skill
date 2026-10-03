@@ -49,7 +49,9 @@ In this file `scale` means `python3 <skill directory>/scripts/scale_image.py`.
    1. `scale next --work DIR` prints the instructions for the next tile and writes its input image.
       Follow them exactly: give the input image (and, if the tool takes several images, the
       reference images) to the generator and save the result where it says.
-   2. Look at the result before accepting it. Then `scale accept --work DIR`.
+   2. Look at the result, then run `scale check --work DIR [FILE]` on the candidate: it runs every
+      validation without merging anything. Regenerate until it is clean (or the warnings are acceptable),
+      then `scale accept --work DIR`.
       Exit status 0 = accepted; 5 = accepted with warnings (read and report them); 2 = rejected
       (regenerate from the same input); 3 = paused, see below.
    3. Look at the 1:1 seam crops it names, and tell the user about any visible join. A bad

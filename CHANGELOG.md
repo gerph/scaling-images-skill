@@ -2,6 +2,10 @@
 
 ## 0.1.0 - unreleased
 
+- `check` runs every `accept` validation on a candidate result without merging it, so an agent can test attempts
+  before committing one. The tile instructions now say to keep the framing exactly, to add no border, to draw nothing
+  that lies outside the tile and not to flatten textured areas into smooth colour.
+
 - Fix a colour step along the vertical seam of tiles that have both a left and a top seam: the top-seam colour
   correction is now applied across the same columns as the left one (found on a real wall, 19 grey levels reduced to ~0).
 
