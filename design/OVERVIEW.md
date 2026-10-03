@@ -170,3 +170,9 @@ Run by the user with Codex's built-in image tool (profile `codex-builtin`) on 20
   ratios 1.49 to 1.91, no warnings but the resize note, and the alpha is exactly the original's scaled up (maximum
   difference 0). On a dark backdrop a pale margin remains around the outer gems; the original has the same opaque
   pale margin (its soft grey shadows), slightly brighter in the result. An option to shrink the alpha is not built.
+- **Gems as embroidery (same source, 5x, `--restyle --enlarge smooth --alpha keep`, feather 128, four tiles).** The
+  change of medium worked: satin and fill stitches carry across the seams with the thread direction and scale
+  unbroken, including at the corner where the fourth tile has both a left and a top seam. Seam ratios 1.60 to 1.97, no
+  warnings other than the resize note. The expected risk, that a 128 px cross-fade would double up the stitch
+  layouts, did not appear, so the default feather stands. Remaining flaws: a few faint grey flecks in the white gaps,
+  and the pale margin on the outer gems inherited from the original's soft shadows.
