@@ -378,11 +378,21 @@ def _accept(args, dry_run):
             warnings.append("the tile's colour has drifted from the original: {0}".format("; ".join(drift["reasons"])))
 
     if dry_run:
-        print("CHECK of tile {0}: {1}. Nothing was changed.".format(
+        # Show the proposed merge: feather the in-memory canvas (never saved) and write 1:1 seam crops.
+        if feather:
+            cv.apply_feather(canvas, tile, returned, feather)
+        crops = []
+        for name, crop in seams.seam_crops(canvas.pixels, tile).items():
+            path = os.path.join(directory, "candidate-seam-{0}.png".format(name))
+            Image.fromarray(crop).save(path)
+            crops.append(path)
+        print("CHECK of tile {0}: {1}. The canvas and state were not changed.".format(
             st.tile_label(tile), "would be accepted with warnings" if warnings else "would be accepted"))
         for name, entry in sorted(report.items()):
             print("  {0} seam: across {1:.1f}, nearby {2:.1f}, ratio {3:.2f}".format(
                 name, entry["across"], entry["within"], entry["ratio"]))
+        for path in crops:
+            print("  Look at the proposed seam: {0}".format(path))
         if "structure" in tile:
             print("  layout agreement with the original: {0:.2f}".format(tile["structure"]))
         for warning in warnings:

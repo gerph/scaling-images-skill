@@ -2,6 +2,9 @@
 
 ## 0.1.0 - unreleased
 
+- `check` writes the 1:1 crops of the proposed seams (`candidate-seam-*.png`), feathered as `accept` would, without
+  changing the canvas or state, so a candidate can be inspected before it is accepted.
+
 - `preview` shows each accepted tile's lightness against the original as a grid and lists drifted tiles; `accept` warns
   when a tile's colour has drifted (not when restyling). On the 60-tile job it flags exactly the four washed-out tiles.
 

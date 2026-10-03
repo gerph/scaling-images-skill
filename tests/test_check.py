@@ -18,7 +18,7 @@ def test_check_reports_without_changing_anything(tmp_path):
     save_result(work, tile, generator.generate(tile))
     before = snapshot(work)
     status, out, err = run("check", "--work", work)
-    assert status == 0 and "would be accepted" in out and "Nothing was changed" in out
+    assert status == 0 and "would be accepted" in out and "were not changed" in out
     assert snapshot(work) == before
     assert st.next_pending(st.load(work))["index"] == 0
     # The real accept afterwards still works.
@@ -72,3 +72,26 @@ def test_instructions_say_what_not_to_draw(tmp_path):
     status, out, err = run("next", "--work", work)
     assert "Keep the exact framing" in out and "lies outside this tile" in out
     assert "do not turn it into smooth colour" in out
+
+
+def test_check_writes_candidate_seam_crops_that_accept_then_matches(tmp_path):
+    import numpy as np
+    from PIL import Image
+    work, generator, ideal = make_job(tmp_path)
+    tile = st.next_pending(st.load(work))
+    save_result(work, tile, generator.generate(tile))
+    assert run("accept", "--work", work)[0] == 0
+    tile = st.next_pending(st.load(work))
+    save_result(work, tile, generator.generate(tile, noise=8))
+    before = snapshot(work)
+    status, out, err = run("check", "--work", work)
+    directory = st.tile_dir(work, tile)
+    candidate = os.path.join(directory, "candidate-seam-left.png")
+    assert os.path.isfile(candidate) and "Look at the proposed seam" in out
+    assert not os.path.exists(os.path.join(directory, "seam-left.png"))
+    assert snapshot(work) == before
+
+    # The crop is what accept then produces, so the check shows the real result.
+    run("accept", "--work", work)
+    assert np.array_equal(np.asarray(Image.open(candidate)),
+                          np.asarray(Image.open(os.path.join(directory, "seam-left.png"))))
