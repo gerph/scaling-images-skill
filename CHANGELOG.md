@@ -2,6 +2,11 @@
 
 ## 0.1.0 - unreleased
 
+- Sources with transparency: `init` stops and asks for `--alpha composite` (flatten onto `--background`, default white)
+  or `--alpha keep` (generate on the backdrop, then restore the original alpha scaled up, with the backdrop mix removed
+  from edge pixels, as an RGBA PNG). `--restyle` renders the picture in a Target style from the description, with its own
+  first-tile instructions and the structure check off. The structure check no longer gives NaN for flat tiles.
+
 - `check` runs every `accept` validation on a candidate result without merging it, so an agent can test attempts
   before committing one. The tile instructions now say to keep the framing exactly, to add no border, to draw nothing
   that lies outside the tile and not to flatten textured areas into smooth colour.

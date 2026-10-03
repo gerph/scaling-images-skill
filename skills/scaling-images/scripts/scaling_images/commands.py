@@ -110,7 +110,29 @@ def cmd_init(args):
     # Preparation: the source, the description and the scale.
     original = Image.open(source_path)
     source_format = original.format
-    source = original.convert("RGB")
+
+    # Transparency: the user decides whether to composite or to keep the alpha.
+    try:
+        background = cv.parse_colour(args.background)
+    except ValueError as exc:
+        raise CommandError(str(exc))
+    transparent = cv.has_transparency(original)
+    alpha_mode = args.alpha if transparent else None
+    if transparent and not args.alpha:
+        raise CommandError(
+            "The source has transparent areas. Ask the user which they want, then re-run init with --alpha:\n"
+            "  --alpha composite   composite onto a plain colour (--background, default white) and give an "
+            "opaque result\n"
+            "  --alpha keep        generate on a plain working backdrop (--background, default white), then "
+            "restore the original alpha scaled up, for an RGBA result\n"
+            "Say in the description that the background is transparent and plain.")
+    if transparent:
+        source = cv.flatten(original, background)
+        os.makedirs(work, exist_ok=True)
+        if alpha_mode == "keep":
+            original.convert("RGBA").getchannel("A").save(os.path.join(work, "alpha.png"))
+    else:
+        source = original.convert("RGB")
 
     description_path = args.description or os.path.join(work, "description.md")
     try:
@@ -143,10 +165,11 @@ def cmd_init(args):
         "source_size": list(source.size),
         "target": list(target),
         "profile": profile.to_dict(),
+        "alpha": {"mode": alpha_mode, "background": list(background), "transparent": transparent},
         "context": args.context if args.context is not None else int(round(profile.tile / 3.0)),
         "marker": {"colour": list(colour), "name": colour_name, "width": args.marker_width},
         "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather,
-                    "structure": not args.no_structure},
+                    "structure": not (args.no_structure or args.restyle), "restyle": args.restyle},
         "description": {
             "path": os.path.relpath(os.path.abspath(description_path), os.path.abspath(work)),
             "hash": desc.description_hash(text),
@@ -445,6 +468,9 @@ def cmd_status(args):
     state = st.load(work)
     print("Source: {0} ({1}x{2}) -> {3}x{4}".format(
         state["source"], state["source_size"][0], state["source_size"][1], state["target"][0], state["target"][1]))
+    alpha = state.get("alpha", {})
+    if alpha.get("mode"):
+        print("Transparency: {0} (backdrop {1})".format(alpha["mode"], alpha["background"]))
     print("Options: {0}".format(", ".join("{0}={1}".format(k, v) for k, v in sorted(state["options"].items()))))
     print("Profile: {0}, tile {1}, marker {2}".format(
         state["profile"]["name"], state["profile"]["tile"], state["marker"]["name"]))
@@ -500,7 +526,12 @@ def cmd_finish(args):
     canvas = cv.Canvas.load(work)
     stem = os.path.splitext(os.path.basename(state["source"]))[0]
     output = args.output or os.path.join(work, "{0}-{1}x{2}.png".format(stem, state["target"][0], state["target"][1]))
-    Image.fromarray(canvas.pixels).save(output)
+    alpha = state.get("alpha", {})
+    if alpha.get("mode") == "keep":
+        rgba = cv.restore_alpha(canvas.pixels, Image.open(os.path.join(work, "alpha.png")), alpha["background"])
+        Image.fromarray(rgba, "RGBA").save(output)
+    else:
+        Image.fromarray(canvas.pixels).save(output)
     _preview_image(work, state, canvas).save(os.path.join(work, "preview.png"))
     print("Wrote {0} ({1}x{2}).".format(output, state["target"][0], state["target"][1]))
     return cmd_preview(args)
@@ -624,6 +655,13 @@ def build_parser():
     p.add_argument("--max-pixels", type=int)
     p.add_argument("--no-align", action="store_true")
     p.add_argument("--no-tone", action="store_true")
+    p.add_argument("--alpha", choices=["composite", "keep"],
+                   help="for a source with transparency (ask the user): composite onto --background, or keep "
+                        "the original alpha")
+    p.add_argument("--background", default="white",
+                   help="the plain backdrop for a transparent source: white, black, grey or #rrggbb")
+    p.add_argument("--restyle", action="store_true",
+                   help="render the picture in a new style given in the description (turns the structure check off)")
     p.add_argument("--no-structure", action="store_true",
                    help="do not check that the layout matches the original (use when restyling the picture)")
     p.add_argument("--feather", type=int, default=128,

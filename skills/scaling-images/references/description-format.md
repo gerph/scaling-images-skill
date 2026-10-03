@@ -35,6 +35,29 @@ rather than leaving a heading out, so the user can see it was considered.
     restricted palette (such as primary colours only) is kept.
   - Upscale blur, compression and watermarks: name each and mark it keep or discard.
 
+## Restyling: the target style
+
+When the user wants the picture rendered in a different style (for example a cartoon as heavy oil paint),
+use `init --restyle` and split section 1 in two:
+
+- **Original style (information only)**: how the source is rendered now (outlines, flat fills, shading). It
+  tells the generator what *not* to copy.
+- **Target style (apply this)**: the medium, technique, brushwork, texture, lighting and colour treatment the
+  result must have, in the same detail as section 1 above (stroke size and direction, impasto, canvas weave,
+  how edges and highlights are painted, how colours are mixed). Say how far to go ("heavy, visible brushstrokes;
+  keep every shape and its place").
+
+What carries over from the original is section 2: the subject, layout, shapes, positions and the identity of each
+colour (a red gem stays red). Write section 2 as what is in the picture, not how it is drawn, so that it holds in any
+style. Typography and text keep their exact wording, but may take the target style's rendering.
+
+## Transparent backgrounds
+
+If the source has transparency, `init` stops and asks for a choice: `--alpha composite` (put the picture on a plain
+colour and keep the result opaque) or `--alpha keep` (generate on a plain backdrop, then restore the original alpha,
+scaled up, for an RGBA result). `--background` sets the colour (default white). Say in the description that the
+background is transparent and must stay plain; the tile instructions repeat that.
+
 ## Section 2: content (what matters in the picture)
 
 Frame or border, labelled places and features, arrows and connecting lines (and how straight they

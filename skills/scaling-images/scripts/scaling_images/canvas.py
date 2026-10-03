@@ -180,3 +180,60 @@ def apply_feather(canvas, tile, returned, width):
         canvas.pixels[ay0 - top:ay0, ax0:ax1] = np.clip(original * (1 - alpha) + theirs * alpha + 0.5, 0, 255)
         backups["top"] = (rect, original)
     return backups
+
+
+NAMED_COLOURS = {"white": (255, 255, 255), "black": (0, 0, 0), "grey": (128, 128, 128), "gray": (128, 128, 128)}
+
+
+def parse_colour(text):
+    """
+    A colour given as a name (white, black, grey) or #rrggbb.
+    """
+    text = text.strip().lower()
+    if text in NAMED_COLOURS:
+        return NAMED_COLOURS[text]
+    if len(text) == 7 and text[0] == "#":
+        try:
+            return (int(text[1:3], 16), int(text[3:5], 16), int(text[5:7], 16))
+        except ValueError:
+            pass
+    raise ValueError("A colour must be white, black, grey or #rrggbb, not '{0}'".format(text))
+
+
+def has_transparency(image):
+    """
+    True if a PIL image has any pixel that is not fully opaque.
+    """
+    if image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info:
+        alpha = np.asarray(image.convert("RGBA"))[..., 3]
+        return bool(alpha.min() < 255)
+    return False
+
+
+def flatten(image, colour):
+    """
+    The image composited over a plain colour, as RGB.
+    """
+    rgba = image.convert("RGBA")
+    backdrop = Image.new("RGBA", rgba.size, tuple(colour) + (255,))
+    return Image.alpha_composite(backdrop, rgba).convert("RGB")
+
+
+def restore_alpha(pixels, alpha_image, colour):
+    """
+    An RGBA array from generated pixels (drawn over *colour*) and the original alpha scaled up.
+
+    The alpha is the original's, enlarged smoothly, so the silhouette cannot change with the
+    style. Partly transparent pixels were drawn mixed with the backdrop; that mix is removed
+    so the edge does not carry a halo of the backdrop colour when placed on another background.
+    """
+    height, width = pixels.shape[:2]
+    alpha = np.asarray(alpha_image.resize((width, height), Image.BICUBIC), dtype=np.float64) / 255.0
+    backdrop = np.array(colour, dtype=np.float64)
+    a = np.maximum(alpha, 0.1)[..., None]
+    colour_out = (pixels.astype(np.float64) - (1 - alpha[..., None]) * backdrop) / a
+    colour_out = np.where(alpha[..., None] >= 0.999, pixels.astype(np.float64), colour_out)
+    out = np.empty((height, width, 4), dtype=np.uint8)
+    out[..., :3] = np.clip(colour_out + 0.5, 0, 255)
+    out[..., 3] = np.clip(alpha * 255 + 0.5, 0, 255)
+    return out

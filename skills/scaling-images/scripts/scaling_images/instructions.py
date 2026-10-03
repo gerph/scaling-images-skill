@@ -7,6 +7,11 @@ Agent-neutral: no tool names, only what the image is, what to draw and where to 
 from .state import tile_label
 
 
+def _colour_name(rgb):
+    names = {(255, 255, 255): "white", (0, 0, 0): "black", (128, 128, 128): "grey"}
+    return names.get(tuple(rgb), "#{0:02x}{1:02x}{2:02x}".format(*rgb))
+
+
 def _percent(value, total):
     return int(round(100.0 * value / total))
 
@@ -51,7 +56,15 @@ def build(state, tile, prose, groups, paths, colour_name):
                      "it will be resized (and will be softer if it is smaller than {0}x{1}).".format(width, height))
     lines.append("")
 
-    if first:
+    restyle = state["options"].get("restyle", False)
+    if first and restyle:
+        lines.append("The input is the top-left part of the original, enlarged with blocky nearest-neighbour "
+                     "pixels. Repaint all of it in the TARGET STYLE given in the description below. Keep the "
+                     "subject, the layout, the position and proportions of every shape, and the identity of every "
+                     "colour (a red object stays red). Do not copy how the original is rendered (its outlines, flat "
+                     "fills, cartoon shading or other technique); the 'original style' notes describe the source "
+                     "only. Do not add, remove or move anything.")
+    elif first:
         lines.append("The input is the top-left part of the original, enlarged with blocky nearest-neighbour "
                      "pixels. Redraw all of it with full detail, keeping every shape, line, colour and the "
                      "layout of the input. Do not add, remove or move anything.")
@@ -69,18 +82,30 @@ def build(state, tile, prose, groups, paths, colour_name):
                          "everything below it, continuing the finished artwork across the line without any "
                          "visible join.".format(colour_name, marker))
         lines.append("- The marker lines are not part of the picture; none may remain in the result.")
-    lines.append("- Match the style, texture, detail level and colour of the finished artwork exactly. Keep the "
-                 "colour grade (tint, saturation, contrast, brightness and any gradient across the sky or "
-                 "ground) of the finished artwork and of the original; do not make it more vivid, sharper or "
-                 "more dramatic.")
+    if restyle:
+        lines.append("- Match the target style, brushwork, texture and colour treatment of the finished artwork "
+                     "exactly, and keep the palette of the original.")
+    else:
+        lines.append("- Match the style, texture, detail level and colour of the finished artwork exactly. Keep the "
+                     "colour grade (tint, saturation, contrast, brightness and any gradient across the sky or "
+                     "ground) of the finished artwork and of the original; do not make it more vivid, sharper or "
+                     "more dramatic.")
+    if state.get("alpha", {}).get("mode"):
+        lines.append("- The background is a plain {0} backdrop standing in for transparency. Keep it perfectly "
+                     "flat and plain: no texture, shadow, vignette or canvas grain. It is not part of the "
+                     "artwork.".format(_colour_name(state["alpha"]["background"])))
     lines.append("- Do not invent objects that the original does not contain.")
     lines.append("- Keep the exact framing of the input. Do not add a border, frame, margin or vignette unless the "
                  "input already shows one.")
     lines.append("- Do not draw any object, label or feature that lies outside this tile. If something is cut off at "
                  "the edge of the input it stays cut off, and nothing beyond the edge is added.")
-    lines.append("- Where the input looks flat or blocky it is only a low-resolution enlargement: redraw the natural "
-                 "texture and fine detail of the medium there (fields, water, stone, sky grain, paper) as in the "
-                 "finished artwork, and do not turn it into smooth colour.")
+    if restyle:
+        lines.append("- Where the input looks flat or blocky it is only a low-resolution enlargement: paint it in "
+                     "the target style, with the texture and detail that style has.")
+    else:
+        lines.append("- Where the input looks flat or blocky it is only a low-resolution enlargement: redraw the "
+                     "natural texture and fine detail of the medium there (fields, water, stone, sky grain, paper) "
+                     "as in the finished artwork, and do not turn it into smooth colour.")
     if tile["pad"][0] or tile["pad"][1]:
         lines.append("- The last {0} columns and {1} rows repeat the image edge to reach the required size; "
                      "continue the image naturally there (they are cropped afterwards).".format(*tile["pad"]))

@@ -220,6 +220,10 @@ def structure_score(supplied, returned, tile, block=128):
             ea, eb = a[y:y + block, x:x + block], b[y:y + block, x:x + block]
             if ea.std() < 0.3 and eb.std() < 0.3:
                 continue
+            if ea.std() < 1e-6 or eb.std() < 1e-6:
+                # One block is flat and the other is not: the structure has changed completely.
+                scores.append((0.0, x + ux, y + uy))
+                continue
             scores.append((float(np.corrcoef(ea.ravel(), eb.ravel())[0, 1]), x + ux, y + uy))
     if not scores:
         return 1.0, []
