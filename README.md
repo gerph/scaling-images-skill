@@ -114,6 +114,7 @@ Main `init` options:
 | `--tile N` | Tile size; defaults to 2048, or 1248 for `codex-builtin`. |
 | `--context N` | Pixels of finished artwork shown beside each new tile (default a third of the tile). |
 | `--feather N` | Cross-fade width at each seam (default 128; 0 for a hard cut). |
+| `--anchor auto\|on\|off` | Pull each tile's broad colour back to the original's, so errors cannot add up across a large image (auto: on unless `--restyle`). |
 | `--enlarge nearest\|smooth` | How the not-yet-drawn part of each input is enlarged. |
 | `--restyle` | Render in the Target style given in the description. |
 | `--alpha composite\|keep`, `--background` | What to do with transparency, and the backdrop colour (default white). |

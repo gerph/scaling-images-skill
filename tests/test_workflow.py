@@ -69,6 +69,19 @@ def test_full_run_with_ideal_generator_reproduces_ideal(tmp_path):
     assert status == 0, err
     final = Image.open(os.path.join(work, "source-2560x1920.png"))
     assert final.size == (2560, 1920)
+    # Anchoring pulls the broad colour to the original's, which differs from the ideal by a level or two.
+    difference = np.abs(np.asarray(final).astype(int) - np.asarray(ideal).astype(int))
+    assert difference.mean() < 1.5 and difference.max() <= 10
+
+
+def test_full_run_without_anchoring_reproduces_ideal_exactly(tmp_path):
+    work, generator, ideal = make_job(tmp_path, extra=("--anchor", "off"))
+    for _ in range(2):
+        tile = st.next_pending(st.load(work))
+        save_result(work, tile, generator.generate(tile))
+        assert run("accept", "--work", work)[0] == 0
+    assert run("finish", "--work", work)[0] == 0
+    final = Image.open(os.path.join(work, "source-2560x1920.png"))
     assert np.array_equal(np.asarray(final), np.asarray(ideal))
     assert os.path.isfile(os.path.join(work, "preview.png"))
 

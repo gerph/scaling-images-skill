@@ -157,7 +157,7 @@ def _smooth_1d(values, sigma):
     return np.stack([np.convolve(padded[:, c], kernel, "valid") for c in range(3)], axis=1)
 
 
-def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0)):
+def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0), decay=None):
     """
     Correct the generator's colour drift in the new region from its copy of the context.
 
@@ -168,6 +168,10 @@ def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0)):
     seam, the same per column. *reach* (left, top) extends each correction that many
     pixels back into the context, so that a feather blends towards a copy whose colour
     already agrees with the canvas.
+
+    With *decay* (pixels) the correction fades with distance from the seam, as exp(-distance / decay), so
+    that an error measured at the seam (bright content that differs between the two copies) cannot
+    spread across a whole tile and be inherited by the next one.
 
     With both seams, the top correction is measured and applied across the same
     columns as the left correction (not only right of the vertical seam), otherwise it
@@ -183,12 +187,16 @@ def tone_field(returned, supplied, tile, band=160, sigma=24, reach=(0, 0)):
         x0 = max(0, ux - band)
         diff = (supplied[uy:, x0:ux] - out[uy:, x0:ux]).mean(axis=1)
         first_column = ux - min(reach[0], ux)
-        out[uy:, first_column:] += _smooth_1d(diff, sigma)[:, None, :]
+        columns = np.arange(first_column, width)
+        weight = np.exp(-np.maximum(columns - ux, 0) / float(decay)) if decay else np.ones(len(columns))
+        out[uy:, first_column:] += _smooth_1d(diff, sigma)[:, None, :] * weight[None, :, None]
 
     if tile["marker_top"] and uy >= 16:
         y0 = max(0, uy - band)
         diff = (supplied[y0:uy, first_column:] - out[y0:uy, first_column:]).mean(axis=0)
-        out[uy - min(reach[1], uy):, first_column:] += _smooth_1d(diff, sigma)[None, :, :]
+        rows = np.arange(uy - min(reach[1], uy), height)
+        weight = np.exp(-np.maximum(rows - uy, 0) / float(decay)) if decay else np.ones(len(rows))
+        out[uy - min(reach[1], uy):, first_column:] += _smooth_1d(diff, sigma)[None, :, :] * weight[:, None, None]
 
     return np.clip(out + 0.5, 0, 255).astype(np.uint8)
 
@@ -229,3 +237,19 @@ def structure_score(supplied, returned, tile, block=128):
         return 1.0, []
     scores.sort()
     return float(np.median([score for score, _, _ in scores])), scores[:3]
+
+
+def anchor_to_original(returned, original, sigma, low=0.5, high=2.0, eps=8.0):
+    """
+    Pull the broad colour and brightness of a returned window back to the original's.
+
+    Matching each tile only to its neighbour lets small errors add up across a large image (every
+    step right or down a little lighter). This multiplies the window by the ratio of the original's
+    blurred colour to the returned window's blurred colour (blur radius *sigma* pixels, ratio limited
+    to low..high), so features smaller than a few sigma keep the generator's rendering while the
+    large-scale colour stays where the original has it.
+    """
+    blurred_returned = np.asarray(Image.fromarray(returned).filter(ImageFilter.GaussianBlur(sigma)), dtype=np.float64)
+    blurred_original = np.asarray(Image.fromarray(original).filter(ImageFilter.GaussianBlur(sigma)), dtype=np.float64)
+    ratio = np.clip((blurred_original + eps) / (blurred_returned + eps), low, high)
+    return np.clip(returned.astype(np.float64) * ratio + 0.5, 0, 255).astype(np.uint8)

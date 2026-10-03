@@ -98,6 +98,17 @@ def smooth_region(source_image, target, rect):
     return np.asarray(source_image.resize((x1 - x0, y1 - y0), Image.BICUBIC, box=box))
 
 
+def original_window(source_image, target, tile):
+    """
+    The original enlarged smoothly over a tile's window (padded like the generated window), as an array.
+    """
+    window = smooth_region(source_image.convert("RGB"), target, tile["win"])
+    pad_x, pad_y = tile["pad"]
+    if pad_x or pad_y:
+        window = np.pad(window, ((0, pad_y), (0, pad_x), (0, 0)), mode="edge")
+    return window
+
+
 def unknown_origin(tile):
     """
     Where the unknown region starts in window coordinates: (ux, uy).

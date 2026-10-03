@@ -13,6 +13,14 @@ Built in, applied automatically before the hard cut at the marker line:
   colour step down the seam (visible in plain sky). The per-row (left seam) or per-column (top seam) difference
   between our context and the generator's copy beside the seam is smoothed and added to the new region.
   Turn off with `init --no-tone`; alignment with `--no-align`.
+- **Anchoring to the original** (on by default; `init --anchor off` turns it off; `auto` leaves it off when
+  restyling): matching each tile only to its neighbour lets small errors add up, so over a large image every
+  step right or down drifts lighter or tinted. Each returned tile's broad colour (blurred over about a sixth
+  of the tile) is multiplied back towards the original's, so features smaller than that keep the generator's
+  rendering and the large-scale colour stays where the original has it. Found on a 60-tile job where one row
+  ended 2x lighter than the original.
+- **Seam colour correction fades with distance** (about an eighth of the tile): an error measured at the seam,
+  such as bright content that differs between the two copies, must not spread across the whole tile.
 - **Feathering** (on by default, `init --feather N`, 0 turns it off): over N pixels (default 128) on the context
   side of each new seam the canvas is cross-faded into the generator's copy of the context, which is continuous
   with the new region. A leftover colour step or line mismatch becomes a gradual change instead of a join. The

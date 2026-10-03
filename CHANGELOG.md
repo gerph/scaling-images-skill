@@ -2,6 +2,11 @@
 
 ## 0.1.0 - unreleased
 
+- Large images no longer drift in colour: each tile's broad colour is anchored to the original's (`init --anchor`,
+  on unless restyling) and the seam colour correction fades with distance from the seam. A 60-tile job had drifted
+  to 2.1x the original's lightness by its third row; replayed on its stored tiles, every tile stays within 0.92 to
+  1.04x and the worst seam score fell from 3.41 to 1.87.
+
 - `init --enlarge smooth` shows the not-yet-drawn part of each tile input as a smooth (bicubic) enlargement instead of
   blocky nearest-neighbour, for hard-edged art (found when a cartoon's first tile kept the staircase edges of its
   blocky input while later tiles, matching smooth artwork, did not). The tile instructions now say that stair-stepped

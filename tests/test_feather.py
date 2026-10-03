@@ -70,6 +70,7 @@ def test_accept_feathers_and_redo_restores_the_canvas(tmp_path):
     tile = st.next_pending(st.load(work))
     save_result(work, tile, generator.generate(tile))
     assert run("accept", "--work", work)[0] == 0
+    before = cv.Canvas.load(work).pixels.copy()
     tile = st.next_pending(st.load(work))
     save_result(work, tile, generator.generate(tile, noise=12))
     status, out, err = run("accept", "--work", work)
@@ -79,11 +80,11 @@ def test_accept_feathers_and_redo_restores_the_canvas(tmp_path):
     assert "left" in state["tiles"][1]["feather"]
     canvas = cv.Canvas.load(work)
     ax0 = state["tiles"][1]["acc"][0]
-    assert not np.array_equal(canvas.pixels[:, ax0 - 128:ax0], np.asarray(ideal)[:, ax0 - 128:ax0])
+    assert not np.array_equal(canvas.pixels[:, ax0 - 128:ax0], before[:, ax0 - 128:ax0])
 
     assert run("redo", "r0c1", "--yes", "--work", work)[0] == 0
     canvas = cv.Canvas.load(work)
-    assert np.array_equal(canvas.pixels[:, ax0 - 128:ax0], np.asarray(ideal)[:, ax0 - 128:ax0])
+    assert np.array_equal(canvas.pixels[:, ax0 - 128:ax0], before[:, ax0 - 128:ax0])
     assert st.load(work)["tiles"][1]["feather"] == {}
 
 

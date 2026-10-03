@@ -170,7 +170,8 @@ def cmd_init(args):
         "marker": {"colour": list(colour), "name": colour_name, "width": args.marker_width},
         "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather,
                     "structure": not (args.no_structure or args.restyle), "restyle": args.restyle,
-                    "enlarge": args.enlarge},
+                    "enlarge": args.enlarge,
+                    "anchor": args.anchor},
         "description": {
             "path": os.path.relpath(os.path.abspath(description_path), os.path.abspath(work)),
             "hash": desc.description_hash(text),
@@ -263,6 +264,14 @@ def _reject(message):
         message), EXIT_REJECTED)
 
 
+def _anchor_enabled(state):
+    """
+    Whether to pull each tile's broad colour back to the original: on, off, or auto (on unless restyling).
+    """
+    mode = state["options"].get("anchor", "auto")
+    return mode == "on" or (mode == "auto" and not state["options"].get("restyle", False))
+
+
 def cmd_accept(args):
     return _accept(args, dry_run=False)
 
@@ -337,8 +346,14 @@ def _accept(args, dry_run):
                     "the generator has changed or moved the finished artwork".format(correlation))
         if correlation < CONTEXT_WARN:
             warnings.append("the context correlates only {0:.2f} with the supplied one".format(correlation))
-        if state["options"]["tone"]:
-            returned = seams.tone_field(returned, supplied, tile, reach=cv.feather_width(tile, feather))
+
+    # Processing: anchor the broad colour to the original, then match the seam (fading with distance).
+    if _anchor_enabled(state):
+        sigma = max(8, int(round(state["profile"]["tile"] / 6.0)))
+        returned = seams.anchor_to_original(returned, cv.original_window(source, state["target"], tile), sigma)
+    if mask.sum() > 256 and state["options"]["tone"]:
+        decay = max(8, int(round(state["profile"]["tile"] / 8.0)))
+        returned = seams.tone_field(returned, supplied, tile, reach=cv.feather_width(tile, feather), decay=decay)
 
     # Processing: has the generator kept the layout? (Off for a deliberate restyle.)
     if state["options"].get("structure", True) and not adopted_here:
@@ -668,6 +683,9 @@ def build_parser():
                    help="how the not-yet-drawn part of each tile input is enlarged: nearest (blocky; default, good "
                         "for photographs and textured art) or smooth (for hard-edged cartoons, icons and line art, "
                         "whose enlarged staircase edges a generator otherwise copies)")
+    p.add_argument("--anchor", choices=["auto", "on", "off"], default="auto",
+                   help="pull each tile's broad colour back to the original's, so errors cannot add up across a "
+                        "large image (auto: on, unless --restyle)")
     p.add_argument("--no-structure", action="store_true",
                    help="do not check that the layout matches the original (use when restyling the picture)")
     p.add_argument("--feather", type=int, default=128,
