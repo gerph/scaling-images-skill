@@ -787,8 +787,9 @@ def cmd_reprocess(args):
             raise CommandError("Reprocessing stopped at {0}: {1}\nTiles before it were reprocessed; {0} and the "
                                "later ones are pending again (the backup is in '{2}'). Regenerate {0}, or restore "
                                "the backup.".format(label, str(exc).split("\n")[0], backup), exc.status)
-        print("  {0} ({1} of {2}){3}".format(label, number, len(affected), " - warnings" if status == EXIT_WARNINGS
-                                             else ""))
+        notes = [w for w in st.load(work)["tiles"][tile["index"]]["warnings"] if "resized" not in w]
+        print("  {0} ({1} of {2}){3}".format(label, number, len(affected),
+                                             " - " + "; ".join(n[:70] for n in notes) if notes else ""))
 
     # The tiles are accepted again; give them back their earlier status.
     state = st.load(work)
