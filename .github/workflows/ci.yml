@@ -1,0 +1,109 @@
+---
+# Check, test and build the scaling-images skill
+
+name: ScalingImagesSkill
+
+# Controls when the action will run. Triggers the workflow on:
+#   * push on any branch.
+#   * tag creation for tags beginning with a 'v'
+#   * pull requests
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: ["**"]
+
+jobs:
+  check-skills:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate published skills
+        run: python3 check-skills.py
+
+  test:
+    needs: check-skills
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The skill supports Python 3.9 and later.
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      # The tests use a fake image generator: they need no network access and spend no tokens.
+      - name: Run the tests
+        run: python -m pytest tests -q
+
+  build-skill:
+    needs:
+      - check-skills
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read the version
+        id: version
+        run: |
+          version=$(python3 skills/scaling-images/scripts/scale_image.py --version)
+          echo "This is version: $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      # A release tag must name the version the code reports.
+      - name: Check the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          test "${GITHUB_REF_NAME#v}" = "${{ steps.version.outputs.version }}"
+
+      - name: Create .skill archive
+        run: |
+          mkdir -p dist
+          (
+              cd skills/scaling-images
+              zip -9r ../../dist/scaling-images.skill . -x '*/__pycache__/*' -x '*.pyc'
+          )
+
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dist/scaling-images.skill
+          archive: false
+          if-no-files-found: error
+
+  # The release only triggers when the thing that was pushed was a tag starting with 'v'
+  release:
+    needs: build-skill
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download the .skill archive
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "*.skill"
+          path: dist
+          merge-multiple: true
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          prerelease: false
+          draft: true
+          artifacts: "dist/*.skill"
