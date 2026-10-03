@@ -2,6 +2,9 @@
 
 ## 0.1.0 - unreleased
 
+- `preview` shows each accepted tile's lightness against the original as a grid and lists drifted tiles; `accept` warns
+  when a tile's colour has drifted (not when restyling). On the 60-tile job it flags exactly the four washed-out tiles.
+
 - Large images no longer drift in colour: each tile's broad colour is anchored to the original's (`init --anchor`,
   on unless restyling) and the seam colour correction fades with distance from the seam. A 60-tile job had drifted
   to 2.1x the original's lightness by its third row; replayed on its stored tiles, every tile stays within 0.92 to

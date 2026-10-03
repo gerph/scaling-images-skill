@@ -126,8 +126,9 @@ Main `init` options:
 On every tile it checks the returned size and shape (resizing a tile of the right shape, and warning if it is much smaller
 than asked), that the marker line has gone, and that the generator's copy of the finished artwork still matches ours. It
 corrects a small shift, and colour drift from top to bottom or left to right, then cross-fades each seam into the
-generator's copy of the context. It reports how visible each seam is, and warns when the tile's layout has drifted from
-the original (for example an edge that has moved). See `skills/scaling-images/references/` for the details.
+generator's copy of the context. It reports how visible each seam is, warns when the tile's layout has drifted from
+the original (for example an edge that has moved), and shows each tile's lightness against the original, so slow
+colour drift across a large image is visible as numbers (`preview`) before it is visible in the picture. See `skills/scaling-images/references/` for the details.
 
 ## Limits
 

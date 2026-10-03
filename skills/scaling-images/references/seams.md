@@ -21,6 +21,11 @@ Built in, applied automatically before the hard cut at the marker line:
   ended 2x lighter than the original.
 - **Seam colour correction fades with distance** (about an eighth of the tile): an error measured at the seam,
   such as bright content that differs between the two copies, must not spread across the whole tile.
+- **Colour drift report**: `preview` prints each accepted tile's lightness against the original (1.00 is the same)
+  as a grid, and lists tiles marked `*` that have drifted: a lightness ratio beyond about 0.87 to 1.15 or a
+  channel beyond 0.8 to 1.25, and large in grey levels too, so near-black areas are not reported. `accept` gives the
+  same warning for the tile just merged (not when restyling, where colour change is expected). Look at it every few
+  tiles on a large image: drift shows as numbers long before anyone sees it in a thumbnail.
 - **Feathering** (on by default, `init --feather N`, 0 turns it off): over N pixels (default 128) on the context
   side of each new seam the canvas is cross-faded into the generator's copy of the context, which is continuous
   with the new region. A leftover colour step or line mismatch becomes a gradual change instead of a join. The

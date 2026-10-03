@@ -253,3 +253,35 @@ def anchor_to_original(returned, original, sigma, low=0.5, high=2.0, eps=8.0):
     blurred_original = np.asarray(Image.fromarray(original).filter(ImageFilter.GaussianBlur(sigma)), dtype=np.float64)
     ratio = np.clip((blurred_original + eps) / (blurred_returned + eps), low, high)
     return np.clip(returned.astype(np.float64) * ratio + 0.5, 0, 255).astype(np.uint8)
+
+
+def colour_drift(pixels, source, target, rect, step=4):
+    """
+    How far the broad colour of a region of the canvas has drifted from the original's.
+
+    *rect* is (x0, y0, x1, y1) in canvas pixels; *source* is the original as an array. Returns a dict with
+    the lightness ratio (canvas over original), the lightness difference in grey levels, the per-channel
+    ratios, and "flagged" with the reasons: a drift is flagged only when it is large both as a ratio and
+    in grey levels, so a near-black region whose ratio is noisy is not reported.
+    """
+    x0, y0, x1, y1 = rect
+    source_height, source_width = source.shape[:2]
+    target_width, target_height = target
+    sx0, sx1 = int(x0 * source_width / float(target_width)), max(int(x0 * source_width / float(target_width)) + 1,
+                                                                int(round(x1 * source_width / float(target_width))))
+    sy0, sy1 = int(y0 * source_height / float(target_height)), max(int(y0 * source_height / float(target_height)) + 1,
+                                                                  int(round(y1 * source_height / float(target_height))))
+    ours = pixels[y0:y1:step, x0:x1:step].astype(np.float64).reshape(-1, 3).mean(axis=0)
+    theirs = source[sy0:sy1, sx0:sx1].astype(np.float64).reshape(-1, 3).mean(axis=0)
+    light_ours = float(ours @ [0.299, 0.587, 0.114])
+    light_theirs = float(theirs @ [0.299, 0.587, 0.114])
+    ratio = light_ours / max(light_theirs, 1e-6)
+    channels = ours / np.maximum(theirs, 1e-6)
+    reasons = []
+    if abs(light_ours - light_theirs) > 15 and (ratio > 1.15 or ratio < 0.87):
+        reasons.append("{0:.2f}x the original's lightness".format(ratio))
+    for name, value, a, b in zip(("red", "green", "blue"), channels, ours, theirs):
+        if abs(a - b) > 20 and (value > 1.25 or value < 0.8):
+            reasons.append("{0:.2f}x the original's {1}".format(value, name))
+    return {"lightness": ratio, "difference": light_ours - light_theirs, "channels": channels.tolist(),
+            "flagged": bool(reasons), "reasons": reasons}

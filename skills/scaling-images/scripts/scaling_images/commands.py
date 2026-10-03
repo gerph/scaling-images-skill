@@ -372,6 +372,11 @@ def _accept(args, dry_run):
         if entry["ratio"] > SEAM_WARN_RATIO:
             warnings.append("the {0} seam is visible (difference across it {1:.1f} against {2:.1f} nearby)".format(
                 name, entry["across"], entry["within"]))
+    if not state["options"].get("restyle", False):
+        drift = seams.colour_drift(canvas.pixels, np.asarray(source), state["target"], tile["acc"])
+        if drift["flagged"]:
+            warnings.append("the tile's colour has drifted from the original: {0}".format("; ".join(drift["reasons"])))
+
     if dry_run:
         print("CHECK of tile {0}: {1}. Nothing was changed.".format(
             st.tile_label(tile), "would be accepted with warnings" if warnings else "would be accepted"))
@@ -517,6 +522,34 @@ def _preview_image(work, state, canvas):
     return image
 
 
+def _print_drift(work, state, canvas):
+    """
+    Lightness of each accepted tile against the original, by row, flagging large drifts.
+    """
+    source = np.asarray(_load_source(work, state))
+    restyled = state["options"].get("restyle", False)
+    rows = {}
+    flagged = []
+    for tile in state["tiles"]:
+        if tile["status"] == "pending":
+            continue
+        drift = seams.colour_drift(canvas.pixels, source, state["target"], tile["acc"])
+        rows.setdefault(tile["row"], []).append(
+            "{0:.2f}{1}".format(drift["lightness"], "*" if drift["flagged"] else " "))
+        if drift["flagged"]:
+            flagged.append("{0}: {1}".format(st.tile_label(tile), "; ".join(drift["reasons"])))
+    if not rows:
+        return
+    print("Lightness against the original, tile by tile (1.00 = the same; * = drifted){0}:".format(
+        "; the picture was restyled, so some difference is expected" if restyled else ""))
+    for row in sorted(rows):
+        print("  row {0}: {1}".format(row, "  ".join(rows[row])))
+    if flagged and not restyled:
+        print("Drifted tiles:")
+        for line in flagged:
+            print("  {0}".format(line))
+
+
 def cmd_preview(args):
     work = _resolve_work(args)
     state = st.load(work)
@@ -525,6 +558,7 @@ def cmd_preview(args):
     _preview_image(work, state, canvas).save(path)
     print("Preview: {0} (tile edges outlined; unaccepted areas dimmed)".format(path))
     print("Tiles: {0}".format(", ".join("{0}={1}".format(k, v) for k, v in sorted(_summary(state).items()))))
+    _print_drift(work, state, canvas)
     for tile in state["tiles"]:
         for name, entry in sorted(tile.get("seams", {}).items()):
             print("  {0} {1} seam: ratio {2:.2f}{3}".format(
