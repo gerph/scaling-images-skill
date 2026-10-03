@@ -84,6 +84,20 @@ def nearest_region(source_array, target, rect):
     return source_array[ys][:, xs]
 
 
+def smooth_region(source_image, target, rect):
+    """
+    The part of a smooth (bicubic) enlargement of the source covering *rect*, as an array.
+
+    Used instead of nearest-neighbour for hard-edged art, where the staircase of an enlarged
+    edge is mistaken by a generator for part of the drawing.
+    """
+    sw, sh = source_image.size
+    tw, th = target
+    x0, y0, x1, y1 = rect
+    box = (x0 * sw / float(tw), y0 * sh / float(th), x1 * sw / float(tw), y1 * sh / float(th))
+    return np.asarray(source_image.resize((x1 - x0, y1 - y0), Image.BICUBIC, box=box))
+
+
 def unknown_origin(tile):
     """
     Where the unknown region starts in window coordinates: (ux, uy).
@@ -104,16 +118,19 @@ def draw_markers(array, tile, colour, width):
     return array
 
 
-def render_input(source, canvas, tile, colour, width):
+def render_input(source, canvas, tile, colour, width, enlarge="nearest"):
     """
     The image to give a generator for a tile, as a PIL image of the window size.
 
     Accepted pixels come from the canvas; the rest is the original enlarged with
-    nearest-neighbour. Padding repeats the edge. Marker lines are drawn last.
+    nearest-neighbour (or smoothly, with enlarge="smooth"). Padding repeats the edge. Marker lines are drawn last.
     """
     source_array = np.asarray(source.convert("RGB"))
     x0, y0, x1, y1 = tile["win"]
-    window = nearest_region(source_array, canvas.size, tile["win"]).copy()
+    if enlarge == "smooth":
+        window = smooth_region(source.convert("RGB"), canvas.size, tile["win"]).copy()
+    else:
+        window = nearest_region(source_array, canvas.size, tile["win"]).copy()
     accepted = canvas.mask[y0:y1, x0:x1]
     window[accepted] = canvas.pixels[y0:y1, x0:x1][accepted]
 

@@ -2,6 +2,11 @@
 
 ## 0.1.0 - unreleased
 
+- `init --enlarge smooth` shows the not-yet-drawn part of each tile input as a smooth (bicubic) enlargement instead of
+  blocky nearest-neighbour, for hard-edged art (found when a cartoon's first tile kept the staircase edges of its
+  blocky input while later tiles, matching smooth artwork, did not). The tile instructions now say that stair-stepped
+  edges are artefacts of the enlargement and to draw clean edges, unless the description says the pixel look is style.
+
 - Sources with transparency: `init` stops and asks for `--alpha composite` (flatten onto `--background`, default white)
   or `--alpha keep` (generate on the backdrop, then restore the original alpha scaled up, with the backdrop mix removed
   from edge pixels, as an RGBA PNG). `--restyle` renders the picture in a Target style from the description, with its own

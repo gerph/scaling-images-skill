@@ -51,6 +51,14 @@ What carries over from the original is section 2: the subject, layout, shapes, p
 colour (a red gem stays red). Write section 2 as what is in the picture, not how it is drawn, so that it holds in any
 style. Typography and text keep their exact wording, but may take the target style's rendering.
 
+## Hard edges and how the enlargement is shown
+
+Each tile's input shows the not-yet-drawn part enlarged. The default is blocky nearest-neighbour, which tells the
+generator plainly that it must redraw; that works well for photographs and textured art. For hard-edged art
+(cartoons, icons, line art) the staircase edges can be copied into the first tile, which has no finished
+artwork beside it to match. Use `init --enlarge smooth` there (a smooth, blurry enlargement with no staircase). If
+a pixel or dithered look is part of the style, say so in the source artefacts item and keep the default.
+
 ## Transparent backgrounds
 
 If the source has transparency, `init` stops and asks for a choice: `--alpha composite` (put the picture on a plain

@@ -169,7 +169,8 @@ def cmd_init(args):
         "context": args.context if args.context is not None else int(round(profile.tile / 3.0)),
         "marker": {"colour": list(colour), "name": colour_name, "width": args.marker_width},
         "options": {"align": not args.no_align, "tone": not args.no_tone, "feather": args.feather,
-                    "structure": not (args.no_structure or args.restyle), "restyle": args.restyle},
+                    "structure": not (args.no_structure or args.restyle), "restyle": args.restyle,
+                    "enlarge": args.enlarge},
         "description": {
             "path": os.path.relpath(os.path.abspath(description_path), os.path.abspath(work)),
             "hash": desc.description_hash(text),
@@ -223,7 +224,8 @@ def _prepare(work, state, tile):
         "work": work,
     }
     marker = state["marker"]
-    cv.render_input(source, canvas, tile, tuple(marker["colour"]), marker["width"]).save(paths["input"])
+    cv.render_input(source, canvas, tile, tuple(marker["colour"]), marker["width"],
+                    state["options"].get("enlarge", "nearest")).save(paths["input"])
     _locator(source, tile, state["target"], marker["colour"]).save(paths["locator"])
 
     prose, items, _ = desc.load(_description_path(work, state))
@@ -313,7 +315,7 @@ def _accept(args, dry_run):
     canvas = cv.Canvas.load(work)
     marker = state["marker"]
     colour = tuple(marker["colour"])
-    supplied = np.array(cv.render_input(source, canvas, tile, colour, marker["width"]))
+    supplied = np.array(cv.render_input(source, canvas, tile, colour, marker["width"], state["options"].get("enlarge", "nearest")))
     mask = canvas.window_mask(tile)
 
     if cv_marker_left(returned, tile, colour, marker["width"]):
@@ -662,6 +664,10 @@ def build_parser():
                    help="the plain backdrop for a transparent source: white, black, grey or #rrggbb")
     p.add_argument("--restyle", action="store_true",
                    help="render the picture in a new style given in the description (turns the structure check off)")
+    p.add_argument("--enlarge", choices=["nearest", "smooth"], default="nearest",
+                   help="how the not-yet-drawn part of each tile input is enlarged: nearest (blocky; default, good "
+                        "for photographs and textured art) or smooth (for hard-edged cartoons, icons and line art, "
+                        "whose enlarged staircase edges a generator otherwise copies)")
     p.add_argument("--no-structure", action="store_true",
                    help="do not check that the layout matches the original (use when restyling the picture)")
     p.add_argument("--feather", type=int, default=128,

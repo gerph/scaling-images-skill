@@ -57,20 +57,21 @@ def build(state, tile, prose, groups, paths, colour_name):
     lines.append("")
 
     restyle = state["options"].get("restyle", False)
+    look = ("smoothly interpolated and therefore blurry" if state["options"].get("enlarge") == "smooth"
+            else "with blocky nearest-neighbour pixels")
+    intro = "The input is the top-left part of the original, enlarged {0}. ".format(look)
     if first and restyle:
-        lines.append("The input is the top-left part of the original, enlarged with blocky nearest-neighbour "
-                     "pixels. Repaint all of it in the TARGET STYLE given in the description below. Keep the "
+        lines.append(intro + "Repaint all of it in the TARGET STYLE given in the description below. Keep the "
                      "subject, the layout, the position and proportions of every shape, and the identity of every "
                      "colour (a red object stays red). Do not copy how the original is rendered (its outlines, flat "
                      "fills, cartoon shading or other technique); the 'original style' notes describe the source "
                      "only. Do not add, remove or move anything.")
     elif first:
-        lines.append("The input is the top-left part of the original, enlarged with blocky nearest-neighbour "
-                     "pixels. Redraw all of it with full detail, keeping every shape, line, colour and the "
+        lines.append(intro + "Redraw all of it with full detail, keeping every shape, line, colour and the "
                      "layout of the input. Do not add, remove or move anything.")
     else:
-        lines.append("Part of the input is finished artwork; the rest is a blocky nearest-neighbour enlargement "
-                     "of the original that you must redraw with full detail.")
+        lines.append("Part of the input is finished artwork; the rest is an enlargement of the original ("
+                     + look + ") that you must redraw with full detail.")
         if tile["marker_left"]:
             lines.append("- A solid {0} vertical line {1} pixels wide marks the left edge of the part to redraw. "
                          "Everything to the LEFT of that line is finished: keep it identical in position, "
@@ -95,6 +96,9 @@ def build(state, tile, prose, groups, paths, colour_name):
                      "flat and plain: no texture, shadow, vignette or canvas grain. It is not part of the "
                      "artwork.".format(_colour_name(state["alpha"]["background"])))
     lines.append("- Do not invent objects that the original does not contain.")
+    lines.append("- Jagged, stair-stepped or blocky edges, visible pixels and blur in the input are artefacts of the "
+                 "enlargement, not part of the artwork: draw smooth, clean edges and strokes. (Unless the "
+                 "description says the pixel look is part of the style.)")
     lines.append("- Keep the exact framing of the input. Do not add a border, frame, margin or vignette unless the "
                  "input already shows one.")
     lines.append("- Do not draw any object, label or feature that lies outside this tile. If something is cut off at "
